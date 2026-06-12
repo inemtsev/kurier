@@ -1,0 +1,9 @@
+# kurier detekt overrides — applied on top of the default config (buildUponDefaultConfig = true).
+# Keep this file small: prefer fixing code over silencing rules; document every override.
+
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  MagicNumber:
+    # Samples favor readability over constants; tests are excluded by default config.
+    excludes: ['**/samples/**', '**/test/**']

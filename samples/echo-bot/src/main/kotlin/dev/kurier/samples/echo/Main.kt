@@ -4,9 +4,11 @@ import dev.kurier.chatGateway
 import dev.kurier.reply
 import dev.kurier.testing.FakeAdapter
 import dev.kurier.text
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
@@ -33,12 +35,17 @@ suspend fun main(): Unit = coroutineScope {
 
     println("kurier echo-bot — type a message, Ctrl+D to exit")
     var received = 0
-    generateSequence(::readlnOrNull)
-        .filter { it.isNotBlank() }
-        .forEach { line ->
-            console.receive(line)
-            received++
-        }
+    // The blocking readlnOrNull() must run on Dispatchers.IO: `suspend main` has no
+    // dispatcher, so without one this loop would resume *nested on the gateway's
+    // worker thread* after each receive() and block it until the next input line.
+    withContext(Dispatchers.IO) {
+        generateSequence(::readlnOrNull)
+            .filter { it.isNotBlank() }
+            .forEach { line ->
+                console.receive(line)
+                received++
+            }
+    }
 
     // Let in-flight echoes drain before shutting down (matters for piped input).
     withTimeoutOrNull(2.seconds) {

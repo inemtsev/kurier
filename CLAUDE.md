@@ -10,9 +10,10 @@ Telegram/Discord/Slack behind it. The flagship feature is **streaming-edit LLM r
 **Target:** 0.1.0 on Maven Central (see Roadmap). **North star:** kurier later becomes the
 channel module of an Android on-phone agent gateway, so Android compatibility is non-negotiable.
 
-**Maven coordinates:** group id `com.eventslooped` (author's domain, Sonatype-verifiable; wired up at M4) —
-artifacts `kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing`. Code packages stay `dev.kurier`
-(library-branded packages outlive group ids; group≠package is standard — cf. Koin, OkHttp, Coil). Do not rename packages.
+**Maven coordinates:** group id `com.eventslooped` (author's domain, Sonatype-verifiable; set in the root build) —
+artifacts `kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing`. Code packages are the bare brand
+`kurier` (group≠package is standard — cf. Coil/Arrow over their domain groups; branded packages outlive group/domain
+changes, the SQLDelight rename being the cautionary tale). Do not rename packages post-0.1.0.
 
 ## Commands
 

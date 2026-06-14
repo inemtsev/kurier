@@ -17,7 +17,7 @@ java {
 }
 
 application {
-    mainClass = "dev.kurier.samples.echo.MainKt"
+    mainClass = "kurier.samples.echo.MainKt"
 }
 
 tasks.named<JavaExec>("run") {

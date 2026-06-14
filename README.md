@@ -2,7 +2,7 @@
 
 > One API for chat platforms. Kotlin-native, coroutine-first.
 
-**kurier** (German/Polish for *courier*) is a unified channel adapter layer for the JVM — JDBC for chat platforms. 
+**kurier** (German/Polish for *courier*) is a unified channel adapter layer for Kotlin — the JDBC for chat platforms. 
 Write your bot or agent once against one typed, `Flow`-based API; per-platform adapters handle the rest: message normalization, rich-text dialects, media, threading, reconnection, and rate limits.
 
 ```kotlin

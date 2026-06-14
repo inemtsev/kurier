@@ -8,7 +8,7 @@ plugins {
 }
 
 allprojects {
-    group = "dev.kurier"
+    group = "com.eventslooped"
     version = "0.1.0-SNAPSHOT"
 }
 

@@ -55,6 +55,9 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 - `suspend` for anything that does I/O; `Flow` for streams. No blocking calls, no `GlobalScope`, no `runBlocking` in library code.
 - Value classes for identifiers (`PlatformId`, `ChannelId`, `MessageId`); channel ids follow `"<platform>:<native id>"`.
 - Options via data classes with default parameters (`StreamingOptions`), not builders.
+- Render `RichText` to a platform via its structured/entity API, not generated markup, where one exists — Telegram uses
+  the `entities` parameter (text + offset-based spans; no escaping, no formatting-injection surface), **never** MarkdownV2.
+  The full rendering matrix + golden tests land in M3.
 - Pre-0.1.0: breaking API changes are fine and expected — improve the design now, it's the cheapest it will ever be.
   Post-0.1.0: deprecation cycle required.
 
@@ -85,5 +88,5 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 
 ## Roadmap
 
-M1 Telegram adapter → M2 Discord + streaming-edit replies → M3 Slack (Socket Mode) + rendering matrix + SPI contract tests → M4 docs + 0.1.0 on Maven Central.
+M1 Telegram adapter → M2 Discord + streaming-edit replies → M2.5 Matrix (Trixnity; `/sync` long-poll, no webhook server) → M2.9 Twitch (Twitch4J; EventSub WS + Helix, no webhook server) → M3 Slack (Socket Mode) + rendering matrix + SPI contract tests → M4 docs + 0.1.0 on Maven Central → M5 Signal (signal-cli sidecar; no webhook server) → M6 WhatsApp + LINE (require a webhook-inbound abstraction + send-window capability).
 Full plan and API design rationale live in the author's notes, not this repo.

@@ -22,9 +22,19 @@ application {
 
 tasks.named<JavaExec>("run") {
     standardInput = System.`in`
+
+    // Load .env (gitignored) so `run` picks up TG_TOKEN locally without exporting it.
+    rootProject.file(".env").takeIf { it.exists() }
+        ?.readLines()
+        ?.filter { it.isNotBlank() && !it.startsWith("#") && "=" in it }
+        ?.forEach { line ->
+            val (key, value) = line.split("=", limit = 2)
+            environment(key.trim(), value.trim())
+        }
 }
 
 dependencies {
     implementation(project(":runtime"))
     implementation(project(":testing"))
+    implementation(project(":adapter-telegram"))
 }

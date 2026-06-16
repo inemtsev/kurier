@@ -8,8 +8,12 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
@@ -51,13 +55,60 @@ internal class TelegramApi(
             }
         }
 
+    /** Returns the bot's own account — validates the token and resolves the bot identity. */
+    suspend fun getMe(): User = request("getMe")
+
+    /** Sends a message to [chatId] with optional formatting [entities], returning the created [Message]. */
+    suspend fun sendMessage(chatId: Long, text: String, entities: List<MessageEntity>? = null): Message =
+        post("sendMessage", SendMessageRequest(chatId = chatId, text = text, entities = entities))
+
+    /**
+     * Edits a message's text in place — the per-token step of streaming-edit replies. Chat-addressed
+     * only: it always returns the edited [Message]. Inline messages (posted via inline mode) are
+     * addressed by `inline_message_id` and make this method return `true` instead; supporting them
+     * would be a separate method and inbound path, since inline messages have no `ChannelId`.
+     */
+    suspend fun editMessageText(chatId: Long, messageId: Long, text: String, entities: List<MessageEntity>? = null): Message =
+        post(
+            "editMessageText",
+            EditMessageTextRequest(chatId = chatId, messageId = messageId, text = text, entities = entities),
+        )
+
+    suspend fun deleteMessage(chatId: Long, messageId: Long) {
+        post<DeleteMessageRequest, Boolean>("deleteMessage", DeleteMessageRequest(chatId = chatId, messageId = messageId))
+    }
+
+    /** Shows a chat action (e.g. `"typing"`); it clears on its own after a few seconds or the next message. */
+    suspend fun sendChatAction(chatId: Long, action: String) {
+        post<SendChatActionRequest, Boolean>("sendChatAction", SendChatActionRequest(chatId = chatId, action = action))
+    }
+
+    suspend fun setMessageReaction(chatId: Long, messageId: Long, emoji: String) {
+        post<SetMessageReactionRequest, Boolean>(
+            "setMessageReaction",
+            SetMessageReactionRequest(
+                chatId = chatId,
+                messageId = messageId,
+                reaction = listOf(ReactionTypeEmoji(type = "emoji", emoji = emoji)),
+            ),
+        )
+    }
+
+    /** POSTs [body] as JSON and unwraps the `{ ok, result }` envelope into [Res]. */
+    private suspend inline fun <reified Req, reified Res> post(name: String, body: Req): Res =
+        request(name) {
+            method = HttpMethod.Post
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+
     private suspend inline fun <reified T> request(
-        method: String,
+        name: String,
         block: HttpRequestBuilder.() -> Unit = {},
     ): T {
-        val envelope: Response<T> = client.get("$baseUrl/$method", block).body()
+        val envelope: Response<T> = client.request("$baseUrl/$name", block).body()
         return envelope.result
-            ?: throw TelegramApiException(method, envelope.errorCode, envelope.description)
+            ?: throw TelegramApiException(name, envelope.errorCode, envelope.description)
     }
 
     fun close() {

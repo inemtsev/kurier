@@ -4,6 +4,8 @@ public data class Attachment(
     public val fileName: String? = null,
     public val contentType: String? = null,
     public val url: String? = null,
+    /** Platform's opaque file handle (e.g. Telegram `file_id`); resolve to [url] via the adapter when needed. */
+    public val id: String? = null,
 )
 
 /** Outgoing message content. */

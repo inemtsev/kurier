@@ -5,3 +5,7 @@ build/
 local.properties
 *.iml
 .DS_Store
+
+# Local secrets (bot tokens, etc.) — never commit
+.env
+.env.local

@@ -22,11 +22,12 @@ import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * One live Telegram bot connection: a long-polling `getUpdates` loop that
+ * One live Telegram bot connection. On start it handshakes via `getMe` — fast
+ * [ConnectionState.Connected], or [ConnectionState.Failed] on a rejected token —
+ * and resolves the bot identity, then runs a long-polling `getUpdates` loop that
  * normalizes updates into [messages]. Owns reconnection and backoff (SPI rule #4):
- * a transient failure flips [state] to [ConnectionState.Backoff] and retries, while
- * a fatal Bot API error (bad token / forbidden) flips it to [ConnectionState.Failed]
- * and stops the loop — retrying an auth failure is pointless.
+ * a transient failure flips [state] to [ConnectionState.Backoff] and retries; a fatal
+ * Bot API error flips it to [ConnectionState.Failed] and stops — retrying is pointless.
  */
 internal class TelegramConnection(
     private val api: TelegramApi,
@@ -44,10 +45,32 @@ internal class TelegramConnection(
     override val events: Flow<ChannelEvent> = _events.asSharedFlow()
     override val state: StateFlow<ConnectionState> = _state.asStateFlow()
 
-    private val job: Job = scope.launch { poll() }
+    private val job: Job = scope.launch { connectAndPoll() }
+
+    private suspend fun connectAndPoll() {
+        val bot = handshake() ?: return // token permanently rejected — stay Failed
+        pollLoop(bot)
+    }
+
+    /** Validates the token via `getMe` and resolves the bot identity; retries transient failures. */
+    @Suppress("TooGenericExceptionCaught") // the handshake must survive any transient network/parse failure
+    private suspend fun handshake(): User? {
+        while (coroutineContext.isActive) {
+            try {
+                val bot = api.getMe()
+                _state.value = ConnectionState.Connected
+                return bot
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: Exception) {
+                if (handleFailure(failure)) break // fatal — leave the loop and report null
+            }
+        }
+        return null
+    }
 
     @Suppress("TooGenericExceptionCaught") // the loop must survive any transient network/parse failure
-    private suspend fun poll() {
+    private suspend fun pollLoop(bot: User) {
         var offset = INITIAL_OFFSET
         while (coroutineContext.isActive) {
             try {
@@ -56,25 +79,25 @@ internal class TelegramConnection(
                 for (update in updates) {
                     offset = update.updateId + 1
                     val message = update.message ?: continue
-                    _messages.emit(message.toIncomingMessage(platform))
+                    _messages.emit(message.toIncomingMessage(platform, api, bot))
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
-            } catch (apiError: TelegramApiException) {
-                if (apiError.isFatal) {
-                    _state.value = ConnectionState.Failed(apiError)
-                    return // token permanently rejected — stop, don't spin
-                }
-                backOff(apiError)
             } catch (failure: Exception) {
-                backOff(failure)
+                if (handleFailure(failure)) return
             }
         }
     }
 
-    private suspend fun backOff(cause: Throwable) {
-        _state.value = ConnectionState.Backoff(BACKOFF, cause)
+    /** Routes a failure to a state transition; returns true if it is fatal and the caller should stop. */
+    private suspend fun handleFailure(failure: Exception): Boolean {
+        if (failure is TelegramApiException && failure.isFatal) {
+            _state.value = ConnectionState.Failed(failure)
+            return true
+        }
+        _state.value = ConnectionState.Backoff(BACKOFF, failure)
         delay(BACKOFF)
+        return false
     }
 
     override suspend fun close() {

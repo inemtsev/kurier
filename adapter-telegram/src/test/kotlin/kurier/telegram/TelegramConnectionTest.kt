@@ -18,9 +18,10 @@ import kotlin.test.assertIs
 class TelegramConnectionTest {
 
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
+    private val meOk = """{"ok":true,"result":{"id":42,"is_bot":true,"first_name":"Echo","username":"echobot"}}"""
 
     @Test
-    fun `polls updates, reports Connected, and emits a normalized message`() = runTest {
+    fun `handshakes, reports Connected, and emits a normalized message`() = runTest {
         val firstPoll =
             """
             {"ok":true,"result":[
@@ -32,13 +33,13 @@ class TelegramConnectionTest {
             ]}
             """.trimIndent()
 
-        var calls = 0
-        val engine = MockEngine {
-            calls++
-            if (calls == 1) {
-                respond(firstPoll, HttpStatusCode.OK, jsonHeaders)
+        var pollCalls = 0
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("/getMe")) {
+                respond(meOk, HttpStatusCode.OK, jsonHeaders)
             } else {
-                awaitCancellation() // idle: park the loop instead of busy-polling
+                pollCalls++
+                if (pollCalls == 1) respond(firstPoll, HttpStatusCode.OK, jsonHeaders) else awaitCancellation()
             }
         }
         val connection = TelegramConnection(
@@ -58,8 +59,8 @@ class TelegramConnectionTest {
     }
 
     @Test
-    fun `stops and reports Failed on a fatal Bot API error`() = runTest {
-        // 401 = invalid token; retrying never succeeds, so the loop must give up.
+    fun `stops and reports Failed when the handshake token is rejected`() = runTest {
+        // getMe is the first call; a 401 there means the token is dead — give up immediately.
         val engine = MockEngine {
             respond("""{"ok":false,"error_code":401,"description":"Unauthorized"}""", HttpStatusCode.OK, jsonHeaders)
         }
@@ -70,15 +71,13 @@ class TelegramConnectionTest {
         )
 
         val failed = assertIs<ConnectionState.Failed>(connection.state.first { it is ConnectionState.Failed })
-        val cause = assertIs<TelegramApiException>(failed.cause)
-        assertEquals(401, cause.errorCode)
+        assertEquals(401, assertIs<TelegramApiException>(failed.cause).errorCode)
 
         connection.close()
     }
 
     @Test
-    fun `backs off and retries on a transient Bot API error`() = runTest {
-        // 429 = rate limited; transient, so the loop backs off and keeps the connection alive.
+    fun `backs off and retries on a transient handshake error`() = runTest {
         var calls = 0
         val engine = MockEngine {
             calls++
@@ -95,8 +94,7 @@ class TelegramConnectionTest {
         )
 
         val backoff = assertIs<ConnectionState.Backoff>(connection.state.first { it is ConnectionState.Backoff })
-        val cause = assertIs<TelegramApiException>(backoff.cause)
-        assertEquals(429, cause.errorCode)
+        assertEquals(429, assertIs<TelegramApiException>(backoff.cause).errorCode)
 
         connection.close()
     }

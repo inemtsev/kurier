@@ -44,7 +44,7 @@ gateway.messages.collect { msg ->
 
 ## Roadmap
 
-- **M1** — Telegram adapter, echo bot on a real platform
+- **M1** — Telegram adapter, echo bot on a real platform ✔️
 - **M2** — Discord adapter, streaming-edit replies
 - **M3** — Slack adapter (Socket Mode), rich-text rendering matrix, golden tests
 - **M4** — 0.1.0 on Maven Central

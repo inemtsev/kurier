@@ -17,5 +17,8 @@ public data class Content(
 
     public companion object {
         public fun text(value: String): Content = Content(RichText.plain(value))
+
+        /** Builds [Content] from the [richText] DSL, e.g. `Content.rich { bold("done") }`. */
+        public fun rich(block: RichTextBuilder.() -> Unit): Content = Content(richText(block))
     }
 }

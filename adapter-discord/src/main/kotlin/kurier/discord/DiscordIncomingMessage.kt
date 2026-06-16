@@ -1,6 +1,7 @@
 package kurier.discord
 
 import dev.kord.common.entity.Snowflake
+import dev.kord.core.Kord
 import dev.kord.core.entity.User
 import dev.kord.core.event.message.MessageCreateEvent
 import kurier.Attachment
@@ -35,8 +36,10 @@ internal class DiscordIncomingMessage(
     override val raw: Any = event
 }
 
-internal fun MessageCreateEvent.toIncomingMessage(platform: PlatformId, selfId: Snowflake): IncomingMessage {
+internal fun MessageCreateEvent.toIncomingMessage(platform: PlatformId, selfId: Snowflake, kord: Kord): IncomingMessage {
     val channel = DiscordChannel(
+        kord = kord,
+        channelId = message.channelId,
         id = ChannelId("${platform.value}:${message.channelId}"),
         platform = platform,
         // No guild ⇒ a DM; a fetch would be needed to distinguish guild threads (deferred).

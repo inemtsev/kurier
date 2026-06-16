@@ -7,7 +7,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kurier.ChannelAdapter
 import kurier.chatGateway
+import kurier.discord.DiscordAdapter
 import kurier.reply
 import kurier.telegram.TelegramAdapter
 import kurier.testing.FakeAdapter
@@ -15,23 +17,26 @@ import kurier.text
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Echo demo. With no `TG_TOKEN` it runs an in-memory console echo (no tokens needed);
- * set `TG_TOKEN` (e.g. in `.env`) to echo against a real Telegram bot instead.
+ * Echo demo. Installs one adapter per bot token present (`TG_TOKEN`, `DISCORD_TOKEN`, e.g. in `.env`)
+ * and echoes across all of them through one gateway; with no token it runs an in-memory console echo.
  */
 suspend fun main(): Unit = coroutineScope {
-    val token = System.getenv("TG_TOKEN")
-    if (token.isNullOrBlank()) consoleEcho() else telegramEcho(token)
+    val adapters = buildList {
+        System.getenv("TG_TOKEN")?.takeIf { it.isNotBlank() }?.let { add(TelegramAdapter(it)) }
+        System.getenv("DISCORD_TOKEN")?.takeIf { it.isNotBlank() }?.let { add(DiscordAdapter(it)) }
+    }
+    if (adapters.isEmpty()) consoleEcho() else liveEcho(adapters)
 }
 
-private suspend fun CoroutineScope.telegramEcho(token: String) {
-    val gateway = chatGateway { install(TelegramAdapter(token)) }
+private suspend fun CoroutineScope.liveEcho(adapters: List<ChannelAdapter>) {
+    val gateway = chatGateway { adapters.forEach { install(it) } }
     gateway.start()
     launch { gateway.connections.collect { println("[kurier] $it") } }
 
-    println("kurier telegram echo-bot — message your bot; Ctrl+C to stop")
+    println("kurier echo-bot — message your bot; Ctrl+C to stop")
     gateway.messages.collect { message ->
         val who = message.author.displayName ?: message.author.id
-        println("[kurier] in  <$who> directed=${message.isDirectedAtBot}: ${message.text}")
+        println("[kurier] in  <${message.channel.platform}:$who> directed=${message.isDirectedAtBot}: ${message.text}")
         if (message.isDirectedAtBot) {
             message.reply("echo: ${message.text}")
             println("[kurier] out echo: ${message.text}")
@@ -48,7 +53,7 @@ private suspend fun CoroutineScope.consoleEcho() {
         gateway.messages.collect { message -> message.reply("echo: ${message.text}") }
     }
 
-    println("kurier echo-bot — type a message, Ctrl+D to exit (set TG_TOKEN for live Telegram)")
+    println("kurier echo-bot — type a message, Ctrl+D to exit (set TG_TOKEN or DISCORD_TOKEN for live)")
     var received = 0
     // The blocking readlnOrNull() must run on Dispatchers.IO: `suspend main` has no
     // dispatcher, so without one this loop would resume nested on the gateway's worker

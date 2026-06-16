@@ -1,5 +1,6 @@
 package kurier.discord
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.Event
 import dev.kord.core.event.gateway.DisconnectEvent
@@ -22,7 +23,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kurier.AdapterConnection
+import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelId
+import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
@@ -79,9 +83,20 @@ internal class DiscordConnection(
             is DisconnectEvent -> _state.value = ConnectionState.Connecting
             is MessageCreateEvent -> {
                 if (event.message.author?.id == client.selfId) return // drop the bot's own messages
-                _messages.emit(event.toIncomingMessage(platform, client.selfId))
+                _messages.emit(event.toIncomingMessage(platform, client.selfId, client))
             }
         }
+    }
+
+    override fun channel(id: ChannelId): Channel? {
+        val client = kord ?: return null
+        // Proactive send: kind isn't known without a fetch, so default to GROUP (send needs only id + kord).
+        return id.toSnowflake()?.let { DiscordChannel(client, it, id, platform, ChannelKind.GROUP, name = null) }
+    }
+
+    private fun ChannelId.toSnowflake(): Snowflake? {
+        if (value.substringBefore(':') != platform.value) return null
+        return value.substringAfter(':').toULongOrNull()?.let { Snowflake(it) }
     }
 
     override suspend fun close() {

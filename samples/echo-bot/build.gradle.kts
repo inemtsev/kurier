@@ -37,4 +37,5 @@ dependencies {
     implementation(project(":runtime"))
     implementation(project(":testing"))
     implementation(project(":adapter-telegram"))
+    implementation(project(":adapter-discord"))
 }

@@ -7,6 +7,9 @@ import dev.kord.core.event.gateway.DisconnectEvent
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.gateway.ResumedEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.core.event.message.MessageDeleteEvent
+import dev.kord.core.event.message.ReactionAddEvent
+import dev.kord.core.event.message.ReactionRemoveEvent
 import dev.kord.gateway.Intent
 import dev.kord.gateway.Intents
 import dev.kord.gateway.PrivilegedIntent
@@ -23,12 +26,17 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kurier.AdapterConnection
+import kurier.Author
 import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelEvent.MessageDeleted
+import kurier.ChannelEvent.ReactionAdded
+import kurier.ChannelEvent.ReactionRemoved
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
+import kurier.MessageId
 import kurier.PlatformId
 
 /**
@@ -81,12 +89,28 @@ internal class DiscordConnection(
             is ReadyEvent, is ResumedEvent -> _state.value = ConnectionState.Connected
             // Kord owns reconnection; distinguishing a fatal auth-close (4004) is a later refinement.
             is DisconnectEvent -> _state.value = ConnectionState.Connecting
-            is MessageCreateEvent -> {
-                if (event.message.author?.id == client.selfId) return // drop the bot's own messages
-                _messages.emit(event.toIncomingMessage(platform, client.selfId, client))
-            }
+            is MessageCreateEvent -> onMessage(event, client)
+            is MessageDeleteEvent -> _events.emit(MessageDeleted(toChannelId(event.channelId), toMessageId(event.messageId)))
+            is ReactionAddEvent -> onReaction(event.reactionInfo(), client.selfId, ::ReactionAdded)
+            is ReactionRemoveEvent -> onReaction(event.reactionInfo(), client.selfId, ::ReactionRemoved)
         }
     }
+
+    private suspend fun onMessage(event: MessageCreateEvent, client: Kord) {
+        if (event.message.author?.id == client.selfId) return // drop the bot's own messages
+        _messages.emit(event.toIncomingMessage(platform, client.selfId, client))
+    }
+
+    private suspend fun onReaction(
+        info: ReactionInfo,
+        selfId: Snowflake,
+        build: (ChannelId, MessageId, String, Author) -> ChannelEvent,
+    ) {
+        reactionEvent(platform, selfId, info, build)?.let { _events.emit(it) }
+    }
+
+    private fun toChannelId(snowflake: Snowflake): ChannelId = ChannelId("${platform.value}:$snowflake")
+    private fun toMessageId(snowflake: Snowflake): MessageId = MessageId(snowflake.toString())
 
     override fun channel(id: ChannelId): Channel? {
         val client = kord ?: return null
@@ -109,7 +133,39 @@ internal class DiscordConnection(
     private fun gatewayIntents(): Intents = Intents {
         +Intent.GuildMessages
         +Intent.DirectMessages
+        +Intent.GuildMessageReactions
+        +Intent.DirectMessagesReactions
         // Privileged: must be enabled in Discord's dev portal, or message content is empty in guilds.
         +Intent.MessageContent
     }
+}
+
+/** The wire fields of a reaction event, decoupled from Kord's two distinct reaction event types. */
+internal data class ReactionInfo(
+    val userId: Snowflake,
+    val channelId: Snowflake,
+    val messageId: Snowflake,
+    val emoji: String,
+)
+
+private fun ReactionAddEvent.reactionInfo(): ReactionInfo = ReactionInfo(userId, channelId, messageId, emoji.name)
+private fun ReactionRemoveEvent.reactionInfo(): ReactionInfo = ReactionInfo(userId, channelId, messageId, emoji.name)
+
+/**
+ * Builds the [ChannelEvent] for a reaction, or null when it is the bot's own reaction (Discord echoes
+ * those back and we ignore them). Pure, so the mapping and self-filter are unit-testable without a gateway.
+ */
+internal fun reactionEvent(
+    platform: PlatformId,
+    selfId: Snowflake,
+    info: ReactionInfo,
+    build: (ChannelId, MessageId, String, Author) -> ChannelEvent,
+): ChannelEvent? {
+    if (info.userId == selfId) return null
+    return build(
+        ChannelId("${platform.value}:${info.channelId}"),
+        MessageId(info.messageId.toString()),
+        info.emoji,
+        Author(info.userId.toString()),
+    )
 }

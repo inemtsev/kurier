@@ -32,6 +32,7 @@ private suspend fun CoroutineScope.liveEcho(adapters: List<ChannelAdapter>) {
     val gateway = chatGateway { adapters.forEach { install(it) } }
     gateway.start()
     launch { gateway.connections.collect { println("[kurier] $it") } }
+    launch { gateway.events.collect { println("[kurier] event $it") } }
 
     println("kurier echo-bot — message your bot; Ctrl+C to stop")
     gateway.messages.collect { message ->

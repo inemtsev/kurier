@@ -2,6 +2,7 @@ package kurier.discord
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
+import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.core.event.message.MessageCreateEvent
 import kurier.Attachment
@@ -34,6 +35,10 @@ internal class DiscordIncomingMessage(
     override val replyTo: MessageRef? =
         message.referencedMessage?.let { MessageRef(channel.id, MessageId(it.id.toString())) }
     override val raw: Any = event
+
+    override suspend fun react(emoji: String) {
+        message.addReaction(ReactionEmoji.Unicode(emoji))
+    }
 }
 
 internal fun MessageCreateEvent.toIncomingMessage(platform: PlatformId, selfId: Snowflake, kord: Kord): IncomingMessage {

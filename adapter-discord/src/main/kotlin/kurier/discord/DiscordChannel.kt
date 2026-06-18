@@ -51,6 +51,10 @@ internal class DiscordChannel(
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)
 
+    override suspend fun indicateTyping() {
+        MessageChannelBehavior(channelId, kord).type()
+    }
+
     private companion object {
         // Discord allows ~5 edits / 5s per channel (≈1/s sustained); Kord auto-rate-limits as a backstop.
         val MIN_EDIT_INTERVAL: Duration = 1.seconds

@@ -24,6 +24,13 @@ public sealed interface ChannelEvent {
         public val emoji: String,
         public val by: Author,
     ) : ChannelEvent
+
+    public data class ReactionRemoved(
+        override val channelId: ChannelId,
+        public val messageId: MessageId,
+        public val emoji: String,
+        public val by: Author,
+    ) : ChannelEvent
 }
 
 /**

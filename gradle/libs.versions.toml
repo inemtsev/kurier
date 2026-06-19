@@ -4,6 +4,7 @@ coroutines = "1.10.2"
 serialization = "1.9.0"
 ktor = "3.2.0"
 kord = "0.18.1"
+trixnity = "4.22.7"
 ktlint-plugin = "14.2.0"
 detekt = "1.23.8"
 
@@ -17,6 +18,7 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 kord-core = { module = "dev.kord:kord-core", version.ref = "kord" }
+trixnity-clientserverapi-client = { module = "net.folivo:trixnity-clientserverapi-client", version.ref = "trixnity" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
 [plugins]

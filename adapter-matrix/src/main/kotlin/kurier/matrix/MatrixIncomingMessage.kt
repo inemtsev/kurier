@@ -10,8 +10,7 @@ import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
-import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClient
-import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 
@@ -30,15 +29,19 @@ internal class MatrixIncomingMessage(
 ) : IncomingMessage {
     override val attachments: List<Attachment> = emptyList()
     override val replyTo: MessageRef? = null
+
+    // The channel is always a MatrixChannel here; it holds the session + room needed to react.
+    override suspend fun react(emoji: String) {
+        (channel as MatrixChannel).react(EventId(id.value), emoji)
+    }
 }
 
 internal fun <C : RoomMessageEventContent> ClientEvent.RoomEvent<C>.toIncomingMessage(
     platform: PlatformId,
-    self: UserId,
-    client: MatrixClientServerApiClient,
+    session: MatrixSession,
 ): IncomingMessage {
     val channel = MatrixChannel(
-        client = client,
+        session = session,
         roomId = roomId,
         id = ChannelId("${platform.value}:${roomId.full}"),
         platform = platform,
@@ -51,7 +54,7 @@ internal fun <C : RoomMessageEventContent> ClientEvent.RoomEvent<C>.toIncomingMe
         channel = channel,
         author = Author(sender.full),
         rich = RichText.plain(content.body),
-        isDirectedAtBot = directedAtBot(self.full, content.body, content.formattedBody),
+        isDirectedAtBot = directedAtBot(session.self.full, content.body, content.formattedBody),
         raw = this,
     )
 }

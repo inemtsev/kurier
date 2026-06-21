@@ -21,7 +21,9 @@ public class MatrixAdapter(
 ) : ChannelAdapter {
 
     init {
-        require(homeserver.isNotBlank()) { "Matrix homeserver URL must not be blank" }
+        require(homeserver.startsWith("http")) {
+            "Matrix homeserver must include the scheme, e.g. https://matrix.org (got: '$homeserver')"
+        }
         require(accessToken.isNotBlank()) { "Matrix access token must not be blank" }
     }
 

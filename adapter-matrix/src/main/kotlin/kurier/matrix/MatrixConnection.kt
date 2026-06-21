@@ -57,6 +57,9 @@ internal class MatrixConnection(
         authProvider = MatrixAuthProvider.classicInMemory(accessToken),
         coroutineContext = scope.coroutineContext,
     )
+
+    @Volatile
+    private var session: MatrixSession? = null
     private val job: Job = scope.launch { run() }
 
     @Suppress("TooGenericExceptionCaught") // a bad token / unreachable homeserver must surface as Failed, not crash
@@ -69,9 +72,11 @@ internal class MatrixConnection(
             _state.value = ConnectionState.Failed(failure)
             return@coroutineScope
         }
+        val activeSession = MatrixSession(client, self)
+        session = activeSession
         client.sync.subscribeContent<RoomMessageEventContent.TextBased.Text> { event ->
-            if (event is ClientEvent.RoomEvent && event.sender != self) {
-                _messages.emit(event.toIncomingMessage(platform, self, client))
+            if (event is ClientEvent.RoomEvent && event.sender != activeSession.self) {
+                _messages.emit(event.toIncomingMessage(platform, activeSession))
             }
         }
         launch { client.sync.currentSyncState.collect { _state.value = it.toConnectionState() } }
@@ -79,9 +84,8 @@ internal class MatrixConnection(
     }
 
     override fun channel(id: ChannelId): Channel? {
-        if (id.value.substringBefore(':') != platform.value) return null
-        // "matrix:!room:server" → RoomId("!room:server"); the room id keeps the part after the first colon.
-        return MatrixChannel(client, RoomId(id.value.substringAfter(':')), id, platform, ChannelKind.GROUP, name = null)
+        val session = session ?: return null
+        return roomIdOf(id, platform)?.let { MatrixChannel(session, it, id, platform, ChannelKind.GROUP, name = null) }
     }
 
     override suspend fun close() {
@@ -91,12 +95,19 @@ internal class MatrixConnection(
     }
 }
 
-private fun SyncState.toConnectionState(): ConnectionState = when (this) {
+/** Maps Trixnity's sync lifecycle onto kurier's [ConnectionState]. */
+internal fun SyncState.toConnectionState(): ConnectionState = when (this) {
     SyncState.RUNNING, SyncState.TIMEOUT -> ConnectionState.Connected
     SyncState.INITIAL_SYNC, SyncState.STARTED -> ConnectionState.Connecting
     // Trixnity owns the retry timing; the delay here is just a hint for state observers.
     SyncState.ERROR -> ConnectionState.Backoff(SYNC_RETRY_HINT)
     SyncState.STOPPED -> ConnectionState.Closed
+}
+
+/** Parses a kurier [ChannelId] (`"<platform>:<roomId>"`) back to a Matrix [RoomId]; null if the prefix mismatches. */
+internal fun roomIdOf(channelId: ChannelId, platform: PlatformId): RoomId? {
+    if (channelId.value.substringBefore(':') != platform.value) return null
+    return RoomId(channelId.value.substringAfter(':'))
 }
 
 private val SYNC_RETRY_HINT = 5.seconds

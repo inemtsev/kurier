@@ -9,15 +9,20 @@ import kurier.Content
 import kurier.PlatformId
 import kurier.SentMessage
 import kurier.StreamingOptions
-import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClient
+import kurier.sendStreamingByEditing
+import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.events.m.ReactionEventContent
+import net.folivo.trixnity.core.model.events.m.RelatesTo
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A Matrix room exposed as a kurier [Channel]. [send] renders to body + HTML `formatted_body`;
- * [sendStreaming] via `m.replace` edits lands in MX-3 (reusing the shared edit engine).
+ * [sendStreaming] reuses the shared edit engine over `m.replace` edits, throttled to [MIN_EDIT_INTERVAL].
  */
 internal class MatrixChannel(
-    private val client: MatrixClientServerApiClient,
+    private val session: MatrixSession,
     private val roomId: RoomId,
     override val id: ChannelId,
     override val platform: PlatformId,
@@ -43,10 +48,26 @@ internal class MatrixChannel(
     }
 
     override suspend fun send(content: Content): SentMessage {
-        val eventId = client.room.sendMessageEvent(roomId, content.toMatrix().toText()).getOrThrow()
-        return MatrixSentMessage(client, roomId, eventId, id)
+        val eventId = session.client.room.sendMessageEvent(roomId, content.toMatrix().toText()).getOrThrow()
+        return MatrixSentMessage(session.client, roomId, eventId, id)
     }
 
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
-        TODO("MX-3: sendStreamingByEditing via m.replace edit events")
+        sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)
+
+    override suspend fun indicateTyping() {
+        session.client.room.setTyping(roomId, session.self, typing = true, timeout = TYPING_TIMEOUT_MS).getOrThrow()
+    }
+
+    /** Annotates [eventId] with [emoji] — an `m.reaction` event. Used by `IncomingMessage.react`. */
+    suspend fun react(eventId: EventId, emoji: String) {
+        val reaction = ReactionEventContent(RelatesTo.Annotation(eventId, key = emoji))
+        session.client.room.sendMessageEvent(roomId, reaction).getOrThrow()
+    }
+
+    private companion object {
+        // Matrix edit rate limits are lenient, but each edit is a full m.replace event; ~1/s is safe.
+        val MIN_EDIT_INTERVAL: Duration = 1.seconds
+        val TYPING_TIMEOUT_MS: Long = 15.seconds.inWholeMilliseconds
+    }
 }

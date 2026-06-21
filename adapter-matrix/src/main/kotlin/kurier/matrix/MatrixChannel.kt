@@ -9,12 +9,16 @@ import kurier.Content
 import kurier.PlatformId
 import kurier.SentMessage
 import kurier.StreamingOptions
+import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClient
+import net.folivo.trixnity.core.model.RoomId
 
 /**
- * A Matrix room exposed as a kurier [Channel]. MX-1 carries identity only; [send] (MX-2) and
- * [sendStreaming] via `m.replace` edits (MX-3) land in later slices.
+ * A Matrix room exposed as a kurier [Channel]. [send] renders to body + HTML `formatted_body`;
+ * [sendStreaming] via `m.replace` edits lands in MX-3 (reusing the shared edit engine).
  */
 internal class MatrixChannel(
+    private val client: MatrixClientServerApiClient,
+    private val roomId: RoomId,
     override val id: ChannelId,
     override val platform: PlatformId,
     override val kind: ChannelKind,
@@ -38,8 +42,10 @@ internal class MatrixChannel(
         -> false
     }
 
-    override suspend fun send(content: Content): SentMessage =
-        TODO("MX-2: sendMessageEvent with body + HTML formatted_body")
+    override suspend fun send(content: Content): SentMessage {
+        val eventId = client.room.sendMessageEvent(roomId, content.toMatrix().toText()).getOrThrow()
+        return MatrixSentMessage(client, roomId, eventId, id)
+    }
 
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         TODO("MX-3: sendStreamingByEditing via m.replace edit events")

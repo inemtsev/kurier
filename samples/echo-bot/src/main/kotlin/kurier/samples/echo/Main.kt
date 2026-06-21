@@ -10,6 +10,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kurier.ChannelAdapter
 import kurier.chatGateway
 import kurier.discord.DiscordAdapter
+import kurier.matrix.MatrixAdapter
 import kurier.reply
 import kurier.telegram.TelegramAdapter
 import kurier.testing.FakeAdapter
@@ -24,6 +25,9 @@ suspend fun main(): Unit = coroutineScope {
     val adapters = buildList {
         System.getenv("TG_TOKEN")?.takeIf { it.isNotBlank() }?.let { add(TelegramAdapter(it)) }
         System.getenv("DISCORD_TOKEN")?.takeIf { it.isNotBlank() }?.let { add(DiscordAdapter(it)) }
+        val matrixHome = System.getenv("MATRIX_HOMESERVER")
+        val matrixToken = System.getenv("MATRIX_TOKEN")
+        if (!matrixHome.isNullOrBlank() && !matrixToken.isNullOrBlank()) add(MatrixAdapter(matrixHome, matrixToken))
     }
     if (adapters.isEmpty()) consoleEcho() else liveEcho(adapters)
 }

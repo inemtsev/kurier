@@ -14,7 +14,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kurier.AdapterConnection
+import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelId
+import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
@@ -22,6 +25,7 @@ import net.folivo.trixnity.clientserverapi.client.MatrixAuthProvider
 import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClientImpl
 import net.folivo.trixnity.clientserverapi.client.SyncState
 import net.folivo.trixnity.clientserverapi.client.classicInMemory
+import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import net.folivo.trixnity.core.subscribeContent
@@ -67,11 +71,17 @@ internal class MatrixConnection(
         }
         client.sync.subscribeContent<RoomMessageEventContent.TextBased.Text> { event ->
             if (event is ClientEvent.RoomEvent && event.sender != self) {
-                _messages.emit(event.toIncomingMessage(platform, self))
+                _messages.emit(event.toIncomingMessage(platform, self, client))
             }
         }
         launch { client.sync.currentSyncState.collect { _state.value = it.toConnectionState() } }
         client.sync.start()
+    }
+
+    override fun channel(id: ChannelId): Channel? {
+        if (id.value.substringBefore(':') != platform.value) return null
+        // "matrix:!room:server" → RoomId("!room:server"); the room id keeps the part after the first colon.
+        return MatrixChannel(client, RoomId(id.value.substringAfter(':')), id, platform, ChannelKind.GROUP, name = null)
     }
 
     override suspend fun close() {

@@ -10,6 +10,7 @@ import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
+import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClient
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
@@ -34,8 +35,11 @@ internal class MatrixIncomingMessage(
 internal fun <C : RoomMessageEventContent> ClientEvent.RoomEvent<C>.toIncomingMessage(
     platform: PlatformId,
     self: UserId,
+    client: MatrixClientServerApiClient,
 ): IncomingMessage {
     val channel = MatrixChannel(
+        client = client,
+        roomId = roomId,
         id = ChannelId("${platform.value}:${roomId.full}"),
         platform = platform,
         // Matrix doesn't distinguish DM vs group at this layer (that's m.direct account data); default GROUP.

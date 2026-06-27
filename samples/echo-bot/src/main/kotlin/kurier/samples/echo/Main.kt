@@ -15,6 +15,7 @@ import kurier.reply
 import kurier.telegram.TelegramAdapter
 import kurier.testing.FakeAdapter
 import kurier.text
+import kurier.twitch.TwitchAdapter
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -28,6 +29,12 @@ suspend fun main(): Unit = coroutineScope {
         val matrixHome = System.getenv("MATRIX_HOMESERVER")
         val matrixToken = System.getenv("MATRIX_TOKEN")
         if (!matrixHome.isNullOrBlank() && !matrixToken.isNullOrBlank()) add(MatrixAdapter(matrixHome, matrixToken))
+        val twitchClientId = System.getenv("TWITCH_CLIENT_ID")
+        val twitchToken = System.getenv("TWITCH_TOKEN")
+        val twitchChannel = System.getenv("TWITCH_CHANNEL")
+        if (!twitchClientId.isNullOrBlank() && !twitchToken.isNullOrBlank() && !twitchChannel.isNullOrBlank()) {
+            add(TwitchAdapter(clientId = twitchClientId, accessToken = twitchToken, channel = twitchChannel))
+        }
     }
     if (adapters.isEmpty()) consoleEcho() else liveEcho(adapters)
 }

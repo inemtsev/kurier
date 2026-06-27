@@ -15,6 +15,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
 
@@ -27,7 +28,7 @@ import kotlin.time.Duration.Companion.seconds
  * [close] shuts both down.
  */
 internal class TelegramApi(
-    token: String,
+    private val token: String,
     private val engine: HttpClientEngine = defaultEngine(),
 ) {
     private val baseUrl = "https://api.telegram.org/bot$token"
@@ -102,13 +103,21 @@ internal class TelegramApi(
             setBody(body)
         }
 
+    @Suppress("TooGenericExceptionCaught") // any transport failure must be scrubbed before it escapes
     private suspend inline fun <reified T> request(
         name: String,
         block: HttpRequestBuilder.() -> Unit = {},
     ): T {
-        val envelope: Response<T> = client.request("$baseUrl/$name", block).body()
-        return envelope.result
-            ?: throw TelegramApiException(name, envelope.errorCode, envelope.description)
+        val envelope: Response<T> = try {
+            client.request("$baseUrl/$name", block).body()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Exception) {
+            // The token lives in the URL path, so transport errors echo it in their message;
+            // scrub it before the failure can reach ConnectionState.
+            throw redactToken(failure, token)
+        }
+        return envelope.unwrap(name)
     }
 
     fun close() {
@@ -146,5 +155,37 @@ internal class TelegramApiException(
     private companion object {
         const val UNAUTHORIZED = 401
         val FATAL_CODES = setOf(UNAUTHORIZED)
+    }
+}
+
+/**
+ * A transport failure with the bot token scrubbed from its message — safe to surface in
+ * [kurier.ConnectionState]. The poll loop treats it like any other transient failure (back off
+ * and retry); only its presentation differs from the raw Ktor exception it stands in for.
+ */
+internal class RedactedRequestException(message: String) : RuntimeException(message)
+
+/** Unwraps the Bot API `{ ok, result }` envelope, raising [TelegramApiException] on an `ok: false`. */
+private fun <T> Response<T>.unwrap(method: String): T =
+    result ?: throw TelegramApiException(method, errorCode, description)
+
+private const val TOKEN_PLACEHOLDER = "<redacted>"
+private const val MAX_CAUSE_DEPTH = 10
+
+/**
+ * Returns [failure] unchanged when nothing in its cause chain mentions [token]; otherwise a
+ * [RedactedRequestException] carrying the original top type name, the redacted message, and the
+ * original stack trace, with the token-bearing cause chain dropped so it can't resurface via
+ * `printStackTrace`. The redacted message is taken from whichever throwable actually held the token,
+ * so the scrub survives Ktor wrapping the leak in an outer exception.
+ */
+private fun redactToken(failure: Throwable, token: String): Throwable {
+    val leak = generateSequence<Throwable>(failure) { it.cause }
+        .take(MAX_CAUSE_DEPTH)
+        .firstOrNull { it.message?.contains(token) == true }
+        ?: return failure
+    val redacted = leak.message.orEmpty().replace(token, TOKEN_PLACEHOLDER)
+    return RedactedRequestException("${failure::class.simpleName}: $redacted").apply {
+        stackTrace = failure.stackTrace
     }
 }

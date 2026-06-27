@@ -9,6 +9,7 @@ import io.ktor.http.Url
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -19,6 +20,24 @@ import kotlin.test.assertTrue
 class TelegramApiTest {
 
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
+
+    @Test
+    fun `transport failures never leak the bot token`() = runTest {
+        val token = "7700000:TOPSECRETTOKENVALUE"
+        // Mimics a Ktor transport error, which carries the full request URL (token included) in its message.
+        val api = TelegramApi(
+            token,
+            MockEngine { throw IOException("Request timeout [url=https://api.telegram.org/bot$token/getUpdates]") },
+        )
+
+        val failure = assertFailsWith<RedactedRequestException> { api.getUpdates(offset = 0, timeoutSeconds = 1) }
+
+        // The guarantee: nothing in the whole cause chain mentions the token or its secret part.
+        val chain = generateSequence<Throwable>(failure) { it.cause }.mapNotNull { it.message }.joinToString("\n")
+        assertFalse(chain.contains(token), "token must not appear anywhere in the failure")
+        assertFalse(chain.contains("TOPSECRETTOKENVALUE"), "token secret must not appear anywhere in the failure")
+        assertTrue(failure.message.orEmpty().contains("<redacted>"), "redacted URL should remain for diagnostics")
+    }
 
     @Test
     fun `getUpdates parses the envelope, maps snake_case, and ignores unknown fields`() = runTest {

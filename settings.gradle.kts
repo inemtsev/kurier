@@ -19,6 +19,7 @@ include(
     ":adapter-telegram",
     ":adapter-discord",
     ":adapter-matrix",
+    ":adapter-twitch",
     ":testing",
     ":samples:echo-bot",
 )

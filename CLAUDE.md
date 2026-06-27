@@ -43,8 +43,9 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
    (`kotlin.time.Duration`, not `java.time`). It must remain mechanically promotable to KMP `commonMain`.
 2. **Android-safe everywhere.** JVM 17 bytecode target; no `java.desktop`/`java.awt`; no reflection-heavy dependencies.
 3. **`explicitApi()` strict** on every library module. Samples are exempt.
-4. **Adapters wrap, never reimplement** (Kord, Slack SDK do protocol work; Telegram is the one exception — its Bot API
-   is simple enough for a direct Ktor implementation). Adapters own reconnection, backoff, and rate limiting.
+4. **Adapters wrap, never reimplement** (Kord, Slack SDK do protocol work). Two sanctioned exceptions build directly on
+   the Ktor client: Telegram (its Bot API is simple enough) and Twitch (its chat surface is small, and the Twitch4J SDK
+   pulls Hystrix/Jackson/`java.time` — Android-unsafe). Adapters own reconnection, backoff, and rate limiting.
 5. **SDK types never leak into `core` signatures.** Platform objects are reachable only via the escape hatch:
    `raw: Any?` in core, typed extension accessors in adapter modules (e.g. `message.telegram`).
 6. **Capabilities over lowest-common-denominator.** Optional features (`react`, `indicateTyping`, buttons) degrade to
@@ -88,5 +89,5 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 
 ## Roadmap
 
-M1 Telegram adapter → M2 Discord + streaming-edit replies → M2.5 Matrix (Trixnity; `/sync` long-poll, no webhook server) → M2.9 Twitch (Twitch4J; EventSub WS + Helix, no webhook server) → M3 Slack (Socket Mode) + rendering matrix + SPI contract tests → M4 docs + 0.1.0 on Maven Central → M5 Signal (signal-cli sidecar; no webhook server) → M6 WhatsApp + LINE (require a webhook-inbound abstraction + send-window capability).
+M1 Telegram adapter → M2 Discord + streaming-edit replies → M2.5 Matrix (Trixnity; `/sync` long-poll, no webhook server) → M2.9 Twitch (direct Ktor — EventSub WS + Helix, no webhook server; not Twitch4J, which pulls Hystrix/Jackson/`java.time` and breaks Android-safety) → M3 Slack (Socket Mode) + rendering matrix + SPI contract tests → M4 docs + 0.1.0 on Maven Central → M5 Signal (signal-cli sidecar; no webhook server) → M6 WhatsApp + LINE (require a webhook-inbound abstraction + send-window capability).
 Full plan and API design rationale live in the author's notes, not this repo.

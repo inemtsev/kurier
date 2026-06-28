@@ -33,7 +33,16 @@ suspend fun main(): Unit = coroutineScope {
         val twitchToken = System.getenv("TWITCH_TOKEN")
         val twitchChannel = System.getenv("TWITCH_CHANNEL")
         if (!twitchClientId.isNullOrBlank() && !twitchToken.isNullOrBlank() && !twitchChannel.isNullOrBlank()) {
-            add(TwitchAdapter(clientId = twitchClientId, accessToken = twitchToken, channel = twitchChannel))
+            add(
+                TwitchAdapter(
+                    clientId = twitchClientId,
+                    accessToken = twitchToken,
+                    channel = twitchChannel,
+                    // Optional: with the secret + refresh token, an expired access token refreshes itself.
+                    clientSecret = System.getenv("TWITCH_CLIENT_SECRET"),
+                    refreshToken = System.getenv("TWITCH_REFRESH_TOKEN"),
+                ),
+            )
         }
     }
     if (adapters.isEmpty()) consoleEcho() else liveEcho(adapters)

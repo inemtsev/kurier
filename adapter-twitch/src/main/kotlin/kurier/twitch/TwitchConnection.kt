@@ -29,8 +29,8 @@ import kotlin.time.Duration.Companion.seconds
  * `channel.chat.message` subscription and forwards `notification`s into [messages]. A keepalive read
  * deadline detects a silently dropped socket; `session_reconnect` drops and reconnects fresh; a
  * `revocation` is fatal. Other fatal config errors (bad token, unknown channel) flip to
- * [ConnectionState.Failed]; an unexpectedly dropped socket reconnects with backoff. Token refresh
- * (using the OAuth refresh token) is still a TODO — see the adapter notes.
+ * [ConnectionState.Failed]; an unexpectedly dropped socket reconnects with backoff. An expired access
+ * token is refreshed transparently by [TwitchApi] when the adapter was given refresh credentials.
  */
 internal class TwitchConnection(
     private val api: TwitchApi,

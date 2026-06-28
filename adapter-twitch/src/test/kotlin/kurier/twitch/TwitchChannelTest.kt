@@ -38,7 +38,7 @@ class TwitchChannelTest {
         val api = TwitchApi(
             "client",
             "token",
-            MockEngine { request ->
+            engine = MockEngine { request ->
                 calls += request.method to (request.body as? TextContent)?.text.orEmpty()
                 respond("""{"data":[{"message_id":"msg-1","is_sent":true}]}""", HttpStatusCode.OK, jsonHeaders)
             },
@@ -61,7 +61,7 @@ class TwitchChannelTest {
             "client",
             "token",
             // Twitch acks a dropped message (e.g. AutoMod) with HTTP 200 + is_sent=false.
-            MockEngine {
+            engine = MockEngine {
                 respond(
                     """{"data":[{"message_id":"x","is_sent":false,"drop_reason":{"code":"automod","message":"held for review"}}]}""",
                     HttpStatusCode.OK,
@@ -80,7 +80,7 @@ class TwitchChannelTest {
         val api = TwitchApi(
             "client",
             "token",
-            MockEngine { request ->
+            engine = MockEngine { request ->
                 bodies += (request.body as? TextContent)?.text.orEmpty()
                 respond("""{"data":[{"message_id":"msg-2","is_sent":true}]}""", HttpStatusCode.OK, jsonHeaders)
             },

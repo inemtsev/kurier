@@ -77,6 +77,13 @@ internal data class ValidateResponse(
     val login: String,
 )
 
+/** `POST https://id.twitch.tv/oauth2/token` (refresh grant) response; Twitch may rotate the refresh token. */
+@Serializable
+internal data class TokenResponse(
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+)
+
 /** `GET /helix/users` response. */
 @Serializable
 internal data class UsersResponse(val data: List<TwitchUser>)

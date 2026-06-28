@@ -13,12 +13,17 @@ import kurier.PlatformId
  * @param clientId The application's client id (registered at dev.twitch.tv).
  * @param accessToken A user OAuth token with `user:read:chat` + `user:write:chat` scopes.
  * @param channel The broadcaster login whose chat the bot reads and posts in.
+ * @param clientSecret The application's client secret; required (with [refreshToken]) to auto-refresh
+ *   an expired access token. Omit for a static token (the connection then fails once it expires).
+ * @param refreshToken The OAuth refresh token paired with [accessToken]; enables auto-refresh.
  * @param id Platform id for this instance; must be unique within a gateway.
  */
 public class TwitchAdapter(
     private val clientId: String,
     private val accessToken: String,
     private val channel: String,
+    private val clientSecret: String? = null,
+    private val refreshToken: String? = null,
     id: String = "twitch",
 ) : ChannelAdapter {
 
@@ -32,7 +37,12 @@ public class TwitchAdapter(
 
     override fun connect(scope: CoroutineScope): AdapterConnection =
         TwitchConnection(
-            api = TwitchApi(clientId = clientId, accessToken = accessToken),
+            api = TwitchApi(
+                clientId = clientId,
+                accessToken = accessToken,
+                clientSecret = clientSecret,
+                refreshToken = refreshToken,
+            ),
             platform = platform,
             channel = channel,
             scope = scope,

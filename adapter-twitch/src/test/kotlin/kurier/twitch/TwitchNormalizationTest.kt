@@ -20,7 +20,7 @@ class TwitchNormalizationTest {
     private val platform = PlatformId("twitch")
 
     // Normalization never sends, so the channel's api is wired to an engine that is never called.
-    private val api = TwitchApi("client", "token", MockEngine { respond("") })
+    private val api = TwitchApi("client", "token", engine = MockEngine { respond("") })
 
     @Test
     fun `decodes a session_welcome envelope and extracts the session id`() {

@@ -28,12 +28,20 @@ internal data class WelcomePayload(val session: Session)
 @Serializable
 internal data class Session(
     val id: String,
+    @SerialName("keepalive_timeout_seconds") val keepaliveTimeoutSeconds: Int? = null,
     @SerialName("reconnect_url") val reconnectUrl: String? = null,
 )
 
 /** `notification` payload (the `subscription` object is ignored). */
 @Serializable
 internal data class NotificationPayload(val event: ChatMessageEvent)
+
+/** `revocation` payload — Twitch dropped our subscription (authorization revoked, user removed, …). */
+@Serializable
+internal data class RevocationPayload(val subscription: RevokedSubscription)
+
+@Serializable
+internal data class RevokedSubscription(val status: String)
 
 @Serializable
 internal data class ChatMessageEvent(

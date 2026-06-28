@@ -21,7 +21,9 @@ import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration
 
 /**
  * Thin Ktor wrapper over Twitch's official API: Helix REST (validate / resolve / subscribe / send)
@@ -91,11 +93,21 @@ internal class TwitchApi(
         return result.messageId
     }
 
-    /** Opens the EventSub WebSocket, delivering each text frame to [onText]; returns when the socket closes. */
-    suspend fun openEventSub(onText: suspend (String) -> Unit) {
+    /**
+     * Opens the EventSub WebSocket and delivers each text frame to [onText], which returns false to stop
+     * receiving so the caller can reconnect. Enforces a read deadline from [keepaliveTimeout]: if no frame
+     * — keepalive or notification — arrives within it, the socket is treated as dead and this returns,
+     * rather than blocking forever on a silently dropped connection. Returns when the socket closes,
+     * stalls past the deadline, or [onText] asks to stop.
+     */
+    suspend fun openEventSub(keepaliveTimeout: () -> Duration, onText: suspend (String) -> Boolean) {
         client.webSocket(EVENTSUB_URL) {
-            for (frame in incoming) {
-                if (frame is Frame.Text) onText(frame.readText())
+            while (true) {
+                // null is a timed-out read (zombie socket) or a closed channel; a Text frame that onText
+                // rejects (reconnect/revocation) also ends the session. Everything else keeps receiving.
+                val frame = withTimeoutOrNull(keepaliveTimeout()) { incoming.receiveCatching().getOrNull() }
+                val keepReceiving = frame != null && (frame !is Frame.Text || onText(frame.readText()))
+                if (!keepReceiving) break
             }
         }
     }

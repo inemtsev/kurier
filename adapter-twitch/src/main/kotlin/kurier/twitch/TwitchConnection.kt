@@ -14,21 +14,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
 import kurier.AdapterConnection
 import kurier.ChannelEvent
 import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
 import kotlin.coroutines.coroutineContext
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
  * One live Twitch chat connection. On start it validates the token (→ the bot's user id) and resolves
- * the channel (→ broadcaster id), then runs the EventSub WebSocket: on `session_welcome` it creates
- * the `channel.chat.message` subscription, and forwards `notification`s into [messages]. Fatal config
- * errors (bad token, unknown channel) flip to [ConnectionState.Failed]; a dropped socket reconnects
- * with backoff. Robust keepalive/`session_reconnect` handling and token refresh land in TW-3.
+ * the channel (→ broadcaster id), then runs the EventSub WebSocket: on `session_welcome` it creates the
+ * `channel.chat.message` subscription and forwards `notification`s into [messages]. A keepalive read
+ * deadline detects a silently dropped socket; `session_reconnect` drops and reconnects fresh; a
+ * `revocation` is fatal. Other fatal config errors (bad token, unknown channel) flip to
+ * [ConnectionState.Failed]; an unexpectedly dropped socket reconnects with backoff. Token refresh
+ * (using the OAuth refresh token) is still a TODO — see the adapter notes.
  */
 internal class TwitchConnection(
     private val api: TwitchApi,
@@ -46,6 +48,10 @@ internal class TwitchConnection(
     override val state: StateFlow<ConnectionState> = _state.asStateFlow()
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    // The receive deadline for the next frame; widened to the session's window once `session_welcome` lands.
+    private var keepalive: Duration = DEFAULT_KEEPALIVE + KEEPALIVE_MARGIN
+
     private val job: Job = scope.launch { run() }
 
     @Suppress("TooGenericExceptionCaught") // startup/socket failures must surface as state, not crash the scope
@@ -63,13 +69,14 @@ internal class TwitchConnection(
         while (coroutineContext.isActive) {
             var cause: Throwable? = null
             try {
-                api.openEventSub { handleFrame(it, bot.userId, broadcaster.id) }
+                api.openEventSub(keepaliveTimeout = { keepalive }) { handleFrame(it, bot.userId, broadcaster.id) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (failure: Exception) {
                 cause = failure
             }
-            if (!coroutineContext.isActive) break
+            // Stop on cancellation or a revocation-induced Failed state; otherwise back off and reconnect.
+            if (!coroutineContext.isActive || _state.value is ConnectionState.Failed) break
             _state.value = ConnectionState.Backoff(BACKOFF, cause)
             delay(BACKOFF)
         }
@@ -91,24 +98,38 @@ internal class TwitchConnection(
         return user
     }
 
-    private suspend fun handleFrame(text: String, botId: String, broadcasterId: String) {
-        val message = json.decodeFromString<EventSubMessage>(text)
-        when (message.metadata.messageType) {
-            "session_welcome" -> {
-                val sessionId = json.decodeFromJsonElement<WelcomePayload>(message.payload).session.id
-                api.createSubscription(broadcasterId = broadcasterId, userId = botId, sessionId = sessionId)
+    /** Interprets one frame; returns false to drop the socket so [run] reconnects (or stops, if revoked). */
+    private suspend fun handleFrame(text: String, botId: String, broadcasterId: String): Boolean =
+        when (val action = parseFrame(json, text)) {
+            is FrameAction.Welcome -> {
+                keepalive = keepaliveTimeout(action.keepaliveSeconds)
+                api.createSubscription(broadcasterId = broadcasterId, userId = botId, sessionId = action.sessionId)
                 _state.value = ConnectionState.Connected
+                true
             }
 
-            "notification" -> if (message.metadata.subscriptionType == TwitchApi.CHAT_MESSAGE_TYPE) {
-                val event = json.decodeFromJsonElement<NotificationPayload>(message.payload).event
-                if (event.chatterUserId != botId) { // the broadcast echoes the bot's own messages
-                    _messages.emit(event.toIncomingMessage(api, platform, botId))
+            is FrameAction.Notification -> {
+                // The broadcast echoes the bot's own messages; skip them so the bot never reacts to itself.
+                if (action.event.chatterUserId != botId) {
+                    _messages.emit(action.event.toIncomingMessage(api, platform, botId))
                 }
+                true
             }
-            // session_keepalive = healthy heartbeat; session_reconnect/revocation are hardened in TW-3.
+
+            FrameAction.Reconnect -> false // drop this socket; run() reconnects fresh
+
+            is FrameAction.Revoked -> {
+                _state.value = ConnectionState.Failed(
+                    IllegalStateException("Twitch revoked the chat subscription: ${action.status}"),
+                )
+                false
+            }
+
+            FrameAction.Ignore -> true
         }
-    }
+
+    /** Reconnect if no keepalive or notification lands within the session's window plus slack for jitter. */
+    private fun keepaliveTimeout(seconds: Int?): Duration = (seconds?.seconds ?: DEFAULT_KEEPALIVE) + KEEPALIVE_MARGIN
 
     override suspend fun close() {
         job.cancelAndJoin()
@@ -118,5 +139,9 @@ internal class TwitchConnection(
 
     private companion object {
         val BACKOFF = 5.seconds
+
+        // Twitch's default keepalive_timeout_seconds; the welcome frame may override it per session.
+        val DEFAULT_KEEPALIVE = 10.seconds
+        val KEEPALIVE_MARGIN = 5.seconds
     }
 }

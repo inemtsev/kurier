@@ -220,7 +220,7 @@ Agnostic by default, never trapped: every `IncomingMessage` exposes the underlyi
 the rare case you need a platform-only field. SDK types never leak into `core` signatures — they're reachable only
 through `raw` (and, per adapter, typed accessors as those land).
 
-### Writing an adapter (SPI)
+### Writing an adapter ([SPI](https://en.wikipedia.org/wiki/Service_provider_interface))
 
 An adapter implements two interfaces and normalizes its platform into kurier's model. It owns reconnection, backoff, and
 rate limiting; the gateway just merges what it emits.

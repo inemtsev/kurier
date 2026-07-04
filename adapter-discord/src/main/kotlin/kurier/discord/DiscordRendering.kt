@@ -18,22 +18,22 @@ internal fun RichText.toDiscord(): String = buildString { nodes.forEach { it.ren
 private fun RichNode.render(out: StringBuilder) {
     when (this) {
         is RichNode.Text -> out.append(escapeMarkdown(value))
-        is RichNode.Bold -> {
-            out.append("**")
-            children.forEach { it.render(out) }
-            out.append("**")
+        is RichNode.Bold -> out.wrapNonEmpty("**", children)
+        is RichNode.Italic -> out.wrapNonEmpty("*", children)
+        is RichNode.Code -> if (value.isNotEmpty()) out.append(renderInlineCode(value))
+        is RichNode.CodeBlock -> if (code.isNotEmpty()) {
+            out.append("```").append(language.orEmpty()).append('\n').append(code).append("\n```")
         }
 
-        is RichNode.Italic -> {
-            out.append("*")
-            children.forEach { it.render(out) }
-            out.append("*")
-        }
-
-        is RichNode.Code -> out.append(renderInlineCode(value))
-        is RichNode.CodeBlock -> out.append("```").append(language.orEmpty()).append('\n').append(code).append("\n```")
         is RichNode.Link -> out.append(renderLink(url, label))
     }
+}
+
+// Wrap [children] in [delimiter] on both sides, but skip it entirely when they render to nothing —
+// so an empty span (e.g. bold of blank generated text) leaves no stray "**" in the output.
+private fun StringBuilder.wrapNonEmpty(delimiter: String, children: List<RichNode>) {
+    val inner = buildString { children.forEach { it.render(this) } }
+    if (inner.isNotEmpty()) append(delimiter).append(inner).append(delimiter)
 }
 
 // The always-inline formatting delimiters; backslash first so we don't double-escape our own escapes.

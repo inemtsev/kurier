@@ -10,7 +10,6 @@ import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
-import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 
@@ -30,9 +29,9 @@ internal class MatrixIncomingMessage(
     override val attachments: List<Attachment> = emptyList()
     override val replyTo: MessageRef? = null
 
-    // The channel is always a MatrixChannel here; it holds the session + room needed to react.
+    // The channel is always a MatrixChannel here; it routes the reaction through its sender seam.
     override suspend fun react(emoji: String) {
-        (channel as MatrixChannel).react(EventId(id.value), emoji)
+        (channel as MatrixChannel).react(id, emoji)
     }
 }
 
@@ -41,8 +40,7 @@ internal fun <C : RoomMessageEventContent> ClientEvent.RoomEvent<C>.toIncomingMe
     session: MatrixSession,
 ): IncomingMessage {
     val channel = MatrixChannel(
-        session = session,
-        roomId = roomId,
+        sender = TrixnityMatrixSender(session, roomId),
         id = ChannelId("${platform.value}:${roomId.full}"),
         platform = platform,
         // Matrix doesn't distinguish DM vs group at this layer (that's m.direct account data); default GROUP.

@@ -21,6 +21,7 @@ ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 kord-core = { module = "dev.kord:kord-core", version.ref = "kord" }
 trixnity-clientserverapi-client = { module = "net.folivo:trixnity-clientserverapi-client", version.ref = "trixnity" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

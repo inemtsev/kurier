@@ -43,8 +43,7 @@ internal class DiscordIncomingMessage(
 
 internal fun MessageCreateEvent.toIncomingMessage(platform: PlatformId, selfId: Snowflake, kord: Kord): IncomingMessage {
     val channel = DiscordChannel(
-        kord = kord,
-        channelId = message.channelId,
+        sender = KordDiscordSender(kord, message.channelId),
         id = ChannelId("${platform.value}:${message.channelId}"),
         platform = platform,
         // No guild ⇒ a DM; a fetch would be needed to distinguish guild threads (deferred).

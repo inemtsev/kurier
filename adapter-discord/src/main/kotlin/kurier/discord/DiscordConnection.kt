@@ -115,7 +115,7 @@ internal class DiscordConnection(
     override fun channel(id: ChannelId): Channel? {
         val client = kord ?: return null
         // Proactive send: kind isn't known without a fetch, so default to GROUP (send needs only id + kord).
-        return id.toSnowflake()?.let { DiscordChannel(client, it, id, platform, ChannelKind.GROUP, name = null) }
+        return id.toSnowflake()?.let { DiscordChannel(KordDiscordSender(client, it), id, platform, ChannelKind.GROUP, name = null) }
     }
 
     private fun ChannelId.toSnowflake(): Snowflake? {

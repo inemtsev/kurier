@@ -22,6 +22,7 @@ dependencies {
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(testFixtures(project(":testing"))) // shared SPI ChannelContract
 }
 
 tasks.withType<Test> {

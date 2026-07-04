@@ -1,9 +1,5 @@
 package kurier.discord
 
-import dev.kord.common.entity.Snowflake
-import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.MessageChannelBehavior
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.flow.Flow
 import kurier.Capability
 import kurier.Channel
@@ -18,12 +14,11 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * A Discord channel exposed as a kurier [Channel]. [send] renders RichText to Markdown via the Bot
- * API; [sendStreaming] reuses the shared edit engine, throttled to Discord's [MIN_EDIT_INTERVAL].
+ * A Discord channel exposed as a kurier [Channel]. [send] renders RichText to Markdown and posts it via
+ * the [DiscordSender] seam; [sendStreaming] reuses the shared edit engine, throttled to [MIN_EDIT_INTERVAL].
  */
 internal class DiscordChannel(
-    private val kord: Kord,
-    private val channelId: Snowflake,
+    private val sender: DiscordSender,
     override val id: ChannelId,
     override val platform: PlatformId,
     override val kind: ChannelKind,
@@ -42,17 +37,14 @@ internal class DiscordChannel(
         Capability.VOICE -> false
     }
 
-    override suspend fun send(content: Content): SentMessage {
-        val rendered = content.toDiscord()
-        val message = MessageChannelBehavior(channelId, kord).createMessage { this.content = rendered }
-        return DiscordSentMessage(message, id)
-    }
+    override suspend fun send(content: Content): SentMessage =
+        DiscordSentMessage(sender, sender.send(content.toDiscord()), id)
 
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)
 
     override suspend fun indicateTyping() {
-        MessageChannelBehavior(channelId, kord).type()
+        sender.typing()
     }
 
     private companion object {

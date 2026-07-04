@@ -29,6 +29,7 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(testFixtures(project(":testing"))) // shared SPI ChannelContract
 }
 
 tasks.withType<Test> {

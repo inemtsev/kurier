@@ -85,7 +85,9 @@ internal class MatrixConnection(
 
     override fun channel(id: ChannelId): Channel? {
         val session = session ?: return null
-        return roomIdOf(id, platform)?.let { MatrixChannel(session, it, id, platform, ChannelKind.GROUP, name = null) }
+        return roomIdOf(id, platform)?.let {
+            MatrixChannel(TrixnityMatrixSender(session, it), id, platform, ChannelKind.GROUP, name = null)
+        }
     }
 
     override suspend fun close() {

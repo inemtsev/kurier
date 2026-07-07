@@ -20,6 +20,7 @@ include(
     ":adapter-discord",
     ":adapter-matrix",
     ":adapter-twitch",
+    ":adapter-slack",
     ":testing",
     ":samples:echo-bot",
 )

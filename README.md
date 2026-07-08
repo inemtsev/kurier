@@ -18,6 +18,12 @@ val gateway = chatGateway {
             channel = System.getenv("TWITCH_CHANNEL"),
         ),
     )
+    install(
+        SlackAdapter(
+            botToken = System.getenv("SLACK_BOT_TOKEN"),
+            appToken = System.getenv("SLACK_APP_TOKEN"),
+        ),
+    )
 }
 
 gateway.start()
@@ -28,13 +34,13 @@ gateway.messages.collect { msg ->
 }
 ```
 
-The same bot now runs on Telegram, Discord, Matrix, and Twitch — no platform code in your handler.
+The same bot now runs on Telegram, Discord, Matrix, Twitch, and Slack — no platform code in your handler.
 
 ## Status
 
 🚧 **Pre-alpha.** API design phase; nothing published to Maven Central yet (see [Roadmap](#roadmap)). The gateway runtime
 and the in-memory `FakeAdapter` work end-to-end (`./gradlew :samples:echo-bot:run`), and the Telegram, Discord, Matrix,
-and Twitch adapters are functional. Pre-0.1.0 the public API may change without a deprecation cycle.
+Twitch, and Slack adapters are functional. Pre-0.1.0 the public API may change without a deprecation cycle.
 
 ## Supported platforms
 
@@ -44,7 +50,7 @@ and Twitch adapters are functional. Pre-0.1.0 the public API may change without 
 | **Discord** | ✅ shipped (M2) | Gateway WebSocket | [Kord](https://github.com/kordlib/kord) |
 | **Matrix** | ✅ shipped (M2.5) | `/sync` long-poll (no webhook server) | [Trixnity](https://github.com/benkuly/trixnity) |
 | **Twitch** | ✅ shipped (M2.9) | EventSub WebSocket + Helix | Ktor client (direct) |
-| **Slack** | ⬜ planned (M3) | Socket Mode | Slack SDK |
+| **Slack** | ✅ shipped (M3) | Socket Mode (no webhook server) | [Slack SDK](https://github.com/slackapi/java-slack-sdk) |
 | **Signal** | ⬜ planned (M5) | signal-cli sidecar | — |
 | **WhatsApp / LINE** | ⬜ planned (M6) | webhook inbound | — |
 
@@ -64,17 +70,20 @@ flowchart LR
         A2["DiscordAdapter"]
         A3["MatrixAdapter"]
         A4["TwitchAdapter"]
+        A5["SlackAdapter"]
     end
 
     A1 <--> P1(["Telegram Bot API"])
     A2 <--> P2(["Discord / Kord"])
     A3 <--> P3(["Matrix / Trixnity"])
     A4 <--> P4(["Twitch EventSub + Helix"])
+    A5 <--> P5(["Slack / Socket Mode"])
 
     A1 --> GW
     A2 --> GW
     A3 --> GW
     A4 --> GW
+    A5 --> GW
 
     GW -->|"messages · events · connections"| APP
     APP -->|"reply() · send() · sendStreaming()"| GW
@@ -137,8 +146,8 @@ Delivery is never gated on it — you receive every message the platform hands t
 ### Sending and rich text
 
 `Content` carries a platform-agnostic [`RichText`](core/src/main/kotlin/kurier/RichText.kt) AST. Each adapter renders it
-to the native dialect (Telegram entities, Discord markdown, Matrix HTML) — kurier never emits raw markup, so there is no
-formatting-injection surface.
+to the native dialect (Telegram entities, Discord markdown, Matrix HTML, Slack mrkdwn) — kurier never emits raw markup,
+so there is no formatting-injection surface.
 
 ```kotlin
 channel.send("plain text")                                      // String convenience
@@ -185,18 +194,20 @@ delegating to the shared `Channel.sendStreamingByEditing(...)` engine in `core`.
 Optional features are **queried, not assumed** — `channel.supports(Capability.BUTTONS)` — and unsupported operations
 degrade to no-ops instead of throwing. No lowest-common-denominator API.
 
-| Capability | Telegram | Discord | Matrix | Twitch |
-|---|:-:|:-:|:-:|:-:|
-| Text + rich text | ✅ | ✅ | ✅ | ✅ (plain) |
-| `EDITING` — streaming edits | ✅ | ✅ | ✅ | — *(buffers)* |
-| `REACTIONS` | ✅ | ✅ | ✅ | — |
-| `TYPING` | ✅ | ✅ | ✅ | — |
-| `FILES` | ✅ | ✅ | ✅ | — |
-| `BUTTONS` | ✅ | ✅ | — | — |
-| `THREADS` | —¹ | ✅ | —¹ | — |
-| `VOICE` | —¹ | — | —¹ | — |
+| Capability | Telegram | Discord | Matrix | Twitch | Slack |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Text + rich text | ✅ | ✅ | ✅ | ✅ (plain) | ✅ |
+| `EDITING` — streaming edits | ✅ | ✅ | ✅ | — *(buffers)* | ✅ |
+| `REACTIONS` | ✅ | ✅ | ✅ | — | ✅² |
+| `TYPING` | ✅ | ✅ | ✅ | — | — |
+| `FILES` | ✅ | ✅ | ✅ | — | —¹ |
+| `BUTTONS` | ✅ | ✅ | — | — | —¹ |
+| `THREADS` | —¹ | ✅ | —¹ | — | ✅ |
+| `VOICE` | —¹ | — | —¹ | — | — |
 
-¹ Provisional `false`: the platform has the feature but it isn't wired yet — the cross-platform semantics land in M3.
+¹ Provisional `false`: the platform has the feature but it isn't wired yet (Slack: Block Kit buttons and file uploads
+are deferred past 0.1.0).
+² Slack reactions take emoji **shortcodes** (`"thumbsup"`), not unicode — `react(emoji)` passes the string through.
 
 ### Connection lifecycle
 
@@ -250,6 +261,7 @@ public interface AdapterConnection {
 | `adapter-discord` | Discord via Kord | — |
 | `adapter-matrix` | Matrix via Trixnity (`/sync`) | — |
 | `adapter-twitch` | Twitch EventSub + Helix over Ktor | — |
+| `adapter-slack` | Slack via Socket Mode (Slack SDK, Java-WebSocket backend) | — |
 | `testing` | `FakeAdapter` / `FakeChannel` for unit-testing bots | Published artifact, not test-only |
 | `samples/echo-bot` | Runnable end-to-end demo (no tokens required) | Exempt from library rules |
 
@@ -283,7 +295,7 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 - **M2** — Discord adapter + streaming-edit replies ✔️
 - **M2.5** — Matrix adapter (Trixnity, `/sync`) ✔️
 - **M2.9** — Twitch adapter (EventSub + Helix) ✔️
-- **M3** — Slack adapter (Socket Mode) + rich-text rendering matrix + shared SPI contract tests
+- **M3** — Slack adapter (Socket Mode) + rich-text rendering matrix + shared SPI contract tests ✔️
 - **M4** — docs + **0.1.0 on Maven Central**
 - **M5** — Signal (signal-cli sidecar)
 - **M6** — WhatsApp + LINE (webhook-inbound abstraction + send-window capability)

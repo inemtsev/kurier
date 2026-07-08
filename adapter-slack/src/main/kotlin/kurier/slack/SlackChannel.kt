@@ -6,6 +6,7 @@ import kurier.Channel
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.Content
+import kurier.MessageId
 import kurier.PlatformId
 import kurier.SentMessage
 import kurier.StreamingOptions
@@ -44,6 +45,11 @@ internal class SlackChannel(
 
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)
+
+    /** Adds a reaction via `reactions.add`. [name] is a Slack shortcode (`"thumbsup"`), not unicode. */
+    suspend fun react(messageId: MessageId, name: String) {
+        sender.react(messageId, name)
+    }
 
     private companion object {
         // chat.update is Tier 3 (~50/min sustained); 1.2s is exactly 50/min, so a long streaming reply

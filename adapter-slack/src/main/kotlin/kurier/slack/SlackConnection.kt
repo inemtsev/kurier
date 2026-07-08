@@ -5,7 +5,10 @@ import com.slack.api.SlackConfig
 import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.auth.AuthTestRequest
 import com.slack.api.methods.response.auth.AuthTestResponse
+import com.slack.api.model.event.MessageDeletedEvent
 import com.slack.api.model.event.MessageEvent
+import com.slack.api.model.event.ReactionAddedEvent
+import com.slack.api.model.event.ReactionRemovedEvent
 import com.slack.api.socket_mode.SocketModeClient
 import com.slack.api.socket_mode.request.EventsApiEnvelope
 import com.slack.api.socket_mode.response.AckResponse
@@ -29,12 +32,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kurier.AdapterConnection
+import kurier.Author
 import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelEvent.MessageDeleted
+import kurier.ChannelEvent.ReactionAdded
+import kurier.ChannelEvent.ReactionRemoved
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
+import kurier.MessageId
 import kurier.PlatformId
 import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
@@ -175,9 +183,16 @@ internal class SlackConnection(
         try {
             when (val action = parseEnvelope(gson, envelope.payload)) {
                 is SlackEventAction.Message -> onMessage(self, action.event)
-                is SlackEventAction.Deleted -> Unit // channel events land with the events slice
-                is SlackEventAction.ReactionAdded -> Unit
-                is SlackEventAction.ReactionRemoved -> Unit
+                is SlackEventAction.Deleted -> deletedEvent(platform, action.event)?.let { _events.emit(it) }
+
+                is SlackEventAction.ReactionAdded ->
+                    reactionEvent(platform, self.userId, action.event.reactionInfo(), ::ReactionAdded)
+                        ?.let { _events.emit(it) }
+
+                is SlackEventAction.ReactionRemoved ->
+                    reactionEvent(platform, self.userId, action.event.reactionInfo(), ::ReactionRemoved)
+                        ?.let { _events.emit(it) }
+
                 SlackEventAction.Ignore -> Unit
             }
         } catch (cancellation: CancellationException) {
@@ -230,6 +245,53 @@ private fun nativeIdOrNull(platform: PlatformId, id: ChannelId): String? {
     if (id.value.substringBefore(':') != platform.value) return null
     return id.value.substringAfter(':').takeIf { it.isNotBlank() }
 }
+
+/** The wire fields of a reaction event, decoupled from the SDK's two distinct reaction event classes. */
+internal data class SlackReactionInfo(
+    val userId: String?,
+    val channelId: String?,
+    val messageTs: String?,
+    val name: String?,
+)
+
+private fun ReactionAddedEvent.reactionInfo(): SlackReactionInfo =
+    SlackReactionInfo(user, item?.channel, item?.ts, reaction)
+
+private fun ReactionRemovedEvent.reactionInfo(): SlackReactionInfo =
+    SlackReactionInfo(user, item?.channel, item?.ts, reaction)
+
+/**
+ * Builds the [ChannelEvent] for a reaction, or null when it is the bot's own reaction (the stream
+ * echoes those back) or when it targets something other than a message (file reactions carry no
+ * channel/ts). The emoji stays a Slack shortcode (`"thumbsup"`). Pure, so the mapping and self-filter
+ * are unit-testable without a socket.
+ */
+internal fun reactionEvent(
+    platform: PlatformId,
+    selfUserId: String,
+    info: SlackReactionInfo,
+    build: (ChannelId, MessageId, String, Author) -> ChannelEvent,
+): ChannelEvent? {
+    if (info.userId == null || info.userId == selfUserId) return null
+    return if (info.channelId != null && info.messageTs != null && info.name != null) {
+        build(
+            ChannelId("${platform.value}:${info.channelId}"),
+            MessageId(info.messageTs),
+            info.name,
+            Author(info.userId),
+        )
+    } else {
+        null
+    }
+}
+
+/** Builds the deletion event, or null when the payload lacks its coordinates. Pure, for unit tests. */
+internal fun deletedEvent(platform: PlatformId, event: MessageDeletedEvent): ChannelEvent? =
+    if (event.channel == null || event.deletedTs == null) {
+        null
+    } else {
+        MessageDeleted(ChannelId("${platform.value}:${event.channel}"), MessageId(event.deletedTs))
+    }
 
 /** A callback from the SDK's own threads, funneled into [SlackConnection]'s single drainer coroutine. */
 internal sealed interface SlackSignal {

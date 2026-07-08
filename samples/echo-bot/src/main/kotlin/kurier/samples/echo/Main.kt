@@ -12,6 +12,7 @@ import kurier.chatGateway
 import kurier.discord.DiscordAdapter
 import kurier.matrix.MatrixAdapter
 import kurier.reply
+import kurier.slack.SlackAdapter
 import kurier.telegram.TelegramAdapter
 import kurier.testing.FakeAdapter
 import kurier.text
@@ -19,8 +20,9 @@ import kurier.twitch.TwitchAdapter
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Echo demo. Installs one adapter per bot token present (`TG_TOKEN`, `DISCORD_TOKEN`, e.g. in `.env`)
- * and echoes across all of them through one gateway; with no token it runs an in-memory console echo.
+ * Echo demo. Installs one adapter per bot token present (`TG_TOKEN`, `DISCORD_TOKEN`,
+ * `SLACK_BOT_TOKEN`+`SLACK_APP_TOKEN`, …, e.g. in `.env`) and echoes across all of them through
+ * one gateway; with no token it runs an in-memory console echo.
  */
 suspend fun main(): Unit = coroutineScope {
     val adapters = buildList {
@@ -29,6 +31,11 @@ suspend fun main(): Unit = coroutineScope {
         val matrixHome = System.getenv("MATRIX_HOMESERVER")
         val matrixToken = System.getenv("MATRIX_TOKEN")
         if (!matrixHome.isNullOrBlank() && !matrixToken.isNullOrBlank()) add(MatrixAdapter(matrixHome, matrixToken))
+        val slackBotToken = System.getenv("SLACK_BOT_TOKEN")
+        val slackAppToken = System.getenv("SLACK_APP_TOKEN")
+        if (!slackBotToken.isNullOrBlank() && !slackAppToken.isNullOrBlank()) {
+            add(SlackAdapter(botToken = slackBotToken, appToken = slackAppToken))
+        }
         val twitchClientId = System.getenv("TWITCH_CLIENT_ID")
         val twitchToken = System.getenv("TWITCH_TOKEN")
         val twitchChannel = System.getenv("TWITCH_CHANNEL")

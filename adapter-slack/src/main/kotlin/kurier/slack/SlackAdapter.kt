@@ -33,5 +33,5 @@ public class SlackAdapter(
     override val platform: PlatformId = PlatformId(id)
 
     override fun connect(scope: CoroutineScope): AdapterConnection =
-        SlackConnection(botToken = botToken, appToken = appToken, scope = scope)
+        SlackConnection(botToken = botToken, appToken = appToken, platform = platform, scope = scope)
 }

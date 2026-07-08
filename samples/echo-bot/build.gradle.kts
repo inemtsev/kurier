@@ -40,4 +40,5 @@ dependencies {
     implementation(project(":adapter-discord"))
     implementation(project(":adapter-matrix"))
     implementation(project(":adapter-twitch"))
+    implementation(project(":adapter-slack"))
 }

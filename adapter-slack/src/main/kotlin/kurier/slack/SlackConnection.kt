@@ -5,6 +5,7 @@ import com.slack.api.SlackConfig
 import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.auth.AuthTestRequest
 import com.slack.api.methods.response.auth.AuthTestResponse
+import com.slack.api.model.event.MessageEvent
 import com.slack.api.socket_mode.SocketModeClient
 import com.slack.api.socket_mode.request.EventsApiEnvelope
 import com.slack.api.socket_mode.response.AckResponse
@@ -28,9 +29,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kurier.AdapterConnection
+import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelId
+import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
+import kurier.PlatformId
 import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.Channel as CoroutineChannel
@@ -54,6 +59,7 @@ import kotlinx.coroutines.channels.Channel as CoroutineChannel
 internal class SlackConnection(
     botToken: String,
     private val appToken: String,
+    private val platform: PlatformId,
     scope: CoroutineScope,
 ) : AdapterConnection {
 
@@ -77,12 +83,12 @@ internal class SlackConnection(
     private val job: Job = scope.launch { run() }
 
     private suspend fun run() {
-        handshake() ?: return
+        val self = handshake() ?: return
         val client = openSocketMode() ?: return
         try {
             registerListeners(client)
             client.connect() // async: the session reports back through the hello/close/error listeners
-            coroutineScope { launch { drain() } }
+            coroutineScope { launch { drain(self) } }
         } finally {
             // NonCancellable: this runs *because* we were cancelled; a plain withContext would skip the close
             // and leak the SDK's executors and socket thread.
@@ -157,22 +163,42 @@ internal class SlackConnection(
         }
     }
 
-    private suspend fun drain() {
+    private suspend fun drain(self: AuthTestResponse) {
         for (signal in signals) {
             signal.toConnectionState()?.let { _state.value = it }
-            // SlackSignal.Envelope: normalization and emission land with the outbound slice.
+            if (signal is SlackSignal.Envelope) handleEnvelope(self, signal.envelope)
         }
     }
 
-    /** 429s, 5xx and transport failures are worth retrying; anything else (rejected token, SDK bug) is fatal. */
-    private fun Exception.isTransient(): Boolean = when (this) {
-        is SlackApiException -> isRetryable()
-        is IOException -> (cause as? SlackApiException)?.isRetryable() ?: true
-        else -> false
+    @Suppress("TooGenericExceptionCaught") // one payload we can't decode must not take the connection down
+    private suspend fun handleEnvelope(self: AuthTestResponse, envelope: EventsApiEnvelope) {
+        try {
+            when (val action = parseEnvelope(gson, envelope.payload)) {
+                is SlackEventAction.Message -> onMessage(self, action.event)
+                is SlackEventAction.Deleted -> Unit // channel events land with the events slice
+                is SlackEventAction.ReactionAdded -> Unit
+                is SlackEventAction.ReactionRemoved -> Unit
+                SlackEventAction.Ignore -> Unit
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (ignored: Exception) {
+            // Dropped; Slack payloads occasionally grow shapes gson can't map onto the SDK models.
+        }
     }
 
-    private fun SlackApiException.isRetryable(): Boolean =
-        response.code == HTTP_TOO_MANY_REQUESTS || response.code >= HTTP_SERVER_ERROR
+    private suspend fun onMessage(self: AuthTestResponse, event: MessageEvent) {
+        // The event stream echoes the bot's own posts; drop them so the bot never replies to itself.
+        if (event.isFrom(selfUserId = self.userId, selfBotId = self.botId)) return
+        _messages.emit(event.toIncomingMessage(methods, platform, self.userId))
+    }
+
+    override fun channel(id: ChannelId): Channel? {
+        val native = nativeIdOrNull(platform, id) ?: return null
+        // Proactive send: kind isn't known without a conversations.info fetch; DM channel ids start with D.
+        val kind = if (native.startsWith("D")) ChannelKind.DM else ChannelKind.GROUP
+        return SlackChannel(MethodsSlackSender(methods, native), id, platform, kind, name = null)
+    }
 
     override suspend fun close() {
         job.cancelAndJoin()
@@ -184,9 +210,25 @@ internal class SlackConnection(
 
     private companion object {
         val BACKOFF = 5.seconds
-        const val HTTP_TOO_MANY_REQUESTS = 429
-        const val HTTP_SERVER_ERROR = 500
     }
+}
+
+/** 429s, 5xx and transport failures are worth retrying; anything else (rejected token, SDK bug) is fatal. */
+private fun Exception.isTransient(): Boolean = when (this) {
+    is SlackApiException -> isRetryable()
+    is IOException -> (cause as? SlackApiException)?.isRetryable() ?: true
+    else -> false
+}
+
+private fun SlackApiException.isRetryable(): Boolean =
+    response.code == HTTP_TOO_MANY_REQUESTS || response.code >= HTTP_SERVER_ERROR
+
+private const val HTTP_TOO_MANY_REQUESTS = 429
+private const val HTTP_SERVER_ERROR = 500
+
+private fun nativeIdOrNull(platform: PlatformId, id: ChannelId): String? {
+    if (id.value.substringBefore(':') != platform.value) return null
+    return id.value.substringAfter(':').takeIf { it.isNotBlank() }
 }
 
 /** A callback from the SDK's own threads, funneled into [SlackConnection]'s single drainer coroutine. */

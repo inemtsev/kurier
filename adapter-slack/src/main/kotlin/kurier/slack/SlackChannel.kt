@@ -29,10 +29,12 @@ internal class SlackChannel(
     override fun supports(capability: Capability): Boolean = when (capability) {
         Capability.EDITING,
         Capability.REACTIONS,
-        Capability.THREADS,
         -> true
 
+        // THREADS is provisional false: a Slack thread is not addressable as a Channel (unlike Discord)
+        // and core has no thread-targeted send yet — inbound replyTo still carries the thread ref.
         // The Web API has no typing indicator; Block Kit buttons and file uploads are deferred.
+        Capability.THREADS,
         Capability.TYPING,
         Capability.BUTTONS,
         Capability.FILES,

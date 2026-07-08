@@ -5,6 +5,8 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.slack.api.model.event.MessageDeletedEvent
 import com.slack.api.model.event.MessageEvent
+import com.slack.api.model.event.MessageFileShareEvent
+import com.slack.api.model.event.MessageThreadBroadcastEvent
 import com.slack.api.model.event.ReactionAddedEvent
 import com.slack.api.model.event.ReactionRemovedEvent
 
@@ -15,7 +17,7 @@ import com.slack.api.model.event.ReactionRemovedEvent
  * so the `event.type`/`event.subtype` dispatch lives here, deserializing into the SDK's model classes.
  */
 internal sealed interface SlackEventAction {
-    /** A user-visible `message` event (no subtype). */
+    /** A user-visible `message` event — plain, a file share, or a reply broadcast to the channel. */
     data class Message(val event: MessageEvent) : SlackEventAction
 
     /** `message` with subtype `message_deleted`. */
@@ -38,7 +40,13 @@ internal fun parseEnvelope(gson: Gson, payload: JsonElement?): SlackEventAction 
     val event = (payload as? JsonObject)?.get("event") as? JsonObject ?: return SlackEventAction.Ignore
     return when (event.stringOrNull("type")) {
         MessageEvent.TYPE_NAME -> when (event.stringOrNull("subtype")) {
-            null -> SlackEventAction.Message(gson.fromJson(event, MessageEvent::class.java))
+            // file_share and thread_broadcast are genuine user messages (carrying files / a reply also
+            // shown in the channel); MessageEvent has all their shared fields, so they normalize alike.
+            null,
+            MessageFileShareEvent.SUBTYPE_NAME,
+            MessageThreadBroadcastEvent.SUBTYPE_NAME,
+            -> SlackEventAction.Message(gson.fromJson(event, MessageEvent::class.java))
+
             MessageDeletedEvent.SUBTYPE_NAME -> SlackEventAction.Deleted(gson.fromJson(event, MessageDeletedEvent::class.java))
             else -> SlackEventAction.Ignore
         }

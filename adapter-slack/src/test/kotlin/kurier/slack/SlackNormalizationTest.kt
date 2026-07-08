@@ -98,6 +98,31 @@ class SlackNormalizationTest {
     }
 
     @Test
+    fun `shared files map to attachments`() {
+        val message = event {
+            channel = "C1"
+            user = "U200"
+            text = "the log"
+            ts = "1.5"
+            channelType = "channel"
+            files = listOf(
+                com.slack.api.model.File().apply {
+                    id = "F1"
+                    name = "boot.log"
+                    mimetype = "text/plain"
+                    urlPrivate = "https://files.slack/x"
+                },
+            )
+        }.toIncomingMessage(methods(), PlatformId("slack"), botUserId = bot)
+
+        val attachment = message.attachments.single()
+        assertEquals("boot.log", attachment.fileName)
+        assertEquals("text/plain", attachment.contentType)
+        assertEquals("https://files.slack/x", attachment.url)
+        assertEquals("F1", attachment.id)
+    }
+
+    @Test
     fun `a top-level message has no reply reference`() {
         val message = event {
             channel = "D9"

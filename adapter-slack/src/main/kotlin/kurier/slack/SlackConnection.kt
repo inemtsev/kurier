@@ -45,6 +45,7 @@ import kurier.IncomingMessage
 import kurier.MessageId
 import kurier.PlatformId
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.Channel as CoroutineChannel
 
@@ -88,6 +89,9 @@ internal class SlackConnection(
     // Unbounded so listeners never block the SDK thread and never drop; inbound rate is bounded by Slack.
     private val signals = CoroutineChannel<SlackSignal>(UNLIMITED)
 
+    // Touched only by the drainer coroutine.
+    private val seenEnvelopes = RecentIds(DEDUP_CAPACITY)
+
     private val job: Job = scope.launch { run() }
 
     private suspend fun run() {
@@ -102,6 +106,10 @@ internal class SlackConnection(
             // and leak the SDK's executors and socket thread.
             withContext(NonCancellable + Dispatchers.IO) {
                 runCatching { client.close() } // best-effort; the socket may already be gone
+                // A monitor tick already past its auto-reconnect check can reconnect *during* close();
+                // this trailing disconnect closes the session such a racer leaves behind. (A racer still
+                // mid-connect is a narrow residual window — Slack force-closes never-acked sessions.)
+                runCatching { client.disconnect() }
             }
         }
     }
@@ -132,8 +140,17 @@ internal class SlackConnection(
     private suspend fun openSocketMode(): SocketModeClient? {
         while (true) {
             try {
-                return runInterruptible(Dispatchers.IO) {
-                    slack.socketMode(appToken, SocketModeClient.Backend.JavaWebSocket)
+                val pending = AtomicReference<SocketModeClient>()
+                try {
+                    return runInterruptible(Dispatchers.IO) {
+                        slack.socketMode(appToken, SocketModeClient.Backend.JavaWebSocket).also(pending::set)
+                    }
+                } catch (cancellation: CancellationException) {
+                    // The client may finish constructing right as cancellation lands, in which case the
+                    // return value is dropped — but its already-started session monitor would open a real
+                    // connection 5s later and keep it alive for the JVM's lifetime. Close the orphan.
+                    withContext(NonCancellable + Dispatchers.IO) { pending.get()?.let { runCatching(it::close) } }
+                    throw cancellation
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
@@ -151,8 +168,8 @@ internal class SlackConnection(
     private fun registerListeners(client: SocketModeClient) {
         client.addEventsApiEnvelopeListener { envelope ->
             // Ack first, within Slack's 3s deadline, so slow downstream work never triggers redelivery.
-            ack(client, envelope)
-            signals.trySend(SlackSignal.Envelope(envelope))
+            // A failed ack means Slack will redeliver — process only the redelivery, or the bot acts twice.
+            if (ack(client, envelope)) signals.trySend(SlackSignal.Envelope(envelope))
         }
         client.addWebSocketMessageListener { text ->
             if (isHelloFrame(gson, text)) signals.trySend(SlackSignal.Hello)
@@ -162,14 +179,15 @@ internal class SlackConnection(
     }
 
     @Suppress("TooGenericExceptionCaught") // a dying socket must not crash the SDK's listener thread
-    private fun ack(client: SocketModeClient, envelope: EventsApiEnvelope) {
+    private fun ack(client: SocketModeClient, envelope: EventsApiEnvelope): Boolean =
         try {
             client.sendSocketModeResponse(AckResponse.builder().envelopeId(envelope.envelopeId).build())
+            true
         } catch (failure: Exception) {
             // The session is going down mid-ack; Slack redelivers the envelope after the SDK reconnects.
             signals.trySend(SlackSignal.SocketError(failure))
+            false
         }
-    }
 
     private suspend fun drain(self: AuthTestResponse) {
         for (signal in signals) {
@@ -180,6 +198,9 @@ internal class SlackConnection(
 
     @Suppress("TooGenericExceptionCaught") // one payload we can't decode must not take the connection down
     private suspend fun handleEnvelope(self: AuthTestResponse, envelope: EventsApiEnvelope) {
+        // A redelivery (same envelope id, retry_attempt bumped — e.g. our ack was lost in transit)
+        // must not make the bot act twice.
+        if (!seenEnvelopes.remember(envelope.envelopeId)) return
         try {
             when (val action = parseEnvelope(gson, envelope.payload)) {
                 is SlackEventAction.Message -> onMessage(self, action.event)
@@ -225,6 +246,24 @@ internal class SlackConnection(
 
     private companion object {
         val BACKOFF = 5.seconds
+        const val DEDUP_CAPACITY = 256
+    }
+}
+
+/**
+ * Remembers the last [capacity] ids so a redelivered envelope is processed exactly once. Not
+ * thread-safe by design — only the drainer coroutine touches it.
+ */
+internal class RecentIds(private val capacity: Int) {
+    private val order = ArrayDeque<String>()
+    private val seen = HashSet<String>()
+
+    /** True the first time [id] is seen (or when null — never deduplicated); false on a repeat. */
+    fun remember(id: String?): Boolean {
+        if (id == null || !seen.add(id)) return id == null
+        order.addLast(id)
+        if (order.size > capacity) seen.remove(order.removeFirst())
+        return true
     }
 }
 

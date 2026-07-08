@@ -47,6 +47,35 @@ class SlackEnvelopeTest {
     }
 
     @Test
+    fun `a file_share message flows as a message with its files`() {
+        val payload =
+            """
+            {"type":"event_callback",
+             "event":{"type":"message","subtype":"file_share","channel":"C123","user":"U200","text":"the log",
+               "ts":"1700000000.000150","channel_type":"channel",
+               "files":[{"id":"F1","name":"boot.log","mimetype":"text/plain","url_private":"https://files.slack/x"}]}}
+            """.trimIndent()
+
+        val action = assertIs<SlackEventAction.Message>(parse(payload))
+        assertEquals("the log", action.event.text)
+        assertEquals("boot.log", action.event.files.single().name)
+    }
+
+    @Test
+    fun `a thread_broadcast reply flows as a message`() {
+        val payload =
+            """
+            {"type":"event_callback",
+             "event":{"type":"message","subtype":"thread_broadcast","channel":"C123","user":"U200",
+               "text":"also in channel","ts":"1700000000.000160","thread_ts":"1700000000.000001"}}
+            """.trimIndent()
+
+        val action = assertIs<SlackEventAction.Message>(parse(payload))
+        assertEquals("also in channel", action.event.text)
+        assertEquals("1700000000.000001", action.event.threadTs)
+    }
+
+    @Test
     fun `a message_changed subtype is ignored`() {
         // Our own streaming edits come back as message_changed; acting on them would echo every edit.
         val payload =

@@ -202,7 +202,7 @@ degrade to no-ops instead of throwing. No lowest-common-denominator API.
 | `TYPING` | ✅ | ✅ | ✅ | — | — |
 | `FILES` | ✅ | ✅ | ✅ | — | —¹ |
 | `BUTTONS` | ✅ | ✅ | — | — | —¹ |
-| `THREADS` | —¹ | ✅ | —¹ | — | ✅ |
+| `THREADS` | —¹ | ✅ | —¹ | — | —¹ |
 | `VOICE` | —¹ | — | —¹ | — | — |
 
 ¹ Provisional `false`: the platform has the feature but it isn't wired yet (Slack: Block Kit buttons and file uploads

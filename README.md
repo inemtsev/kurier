@@ -58,6 +58,9 @@ Adapters **wrap, never reimplement** — Kord and the Slack SDK do the protocol 
 sanctioned exceptions: their surfaces are small enough to talk to the official API directly over Ktor, which keeps them
 thin and Android-safe (Twitch4J would drag in Hystrix/Jackson/`java.time`).
 
+Slack is the only platform needing app-side configuration beyond a token — see the
+[Slack setup guide](docs/slack-setup.md) (workspace, Socket Mode, scopes, event subscriptions).
+
 ## Architecture
 
 ```mermaid

@@ -11,7 +11,8 @@ import kurier.PlatformId
  * backend — the SDK's default (Tyrus, `javax.websocket`) is not Android-viable.
  *
  * Slack apps need two tokens: the bot token (`xoxb-…`) authorizes Web API calls and the app-level
- * token (`xapp-…`, with the `connections:write` scope) opens the Socket Mode connection.
+ * token (`xapp-…`, with the `connections:write` scope) opens the Socket Mode connection. App
+ * configuration (Socket Mode, scopes, event subscriptions) is walked through in `docs/slack-setup.md`.
  *
  * Android note: the SDK deserializes with gson (reflection), so R8/ProGuard builds need keep rules
  * for `com.slack.api.**` model classes.

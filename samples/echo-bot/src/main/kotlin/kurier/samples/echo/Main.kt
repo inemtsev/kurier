@@ -17,42 +17,62 @@ import kurier.telegram.TelegramAdapter
 import kurier.testing.FakeAdapter
 import kurier.text
 import kurier.twitch.TwitchAdapter
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 /**
  * Echo demo. Installs one adapter per bot token present (`TG_TOKEN`, `DISCORD_TOKEN`,
- * `SLACK_BOT_TOKEN`+`SLACK_APP_TOKEN`, …, e.g. in `.env`) and echoes across all of them through
- * one gateway; with no token it runs an in-memory console echo.
+ * `SLACK_BOT_TOKEN`+`SLACK_APP_TOKEN`, …, from the environment or a `.env` at the repo root) and
+ * echoes across all of them through one gateway; with no token it runs an in-memory console echo.
  */
 suspend fun main(): Unit = coroutineScope {
+    val token = tokenSource()
     val adapters = buildList {
-        System.getenv("TG_TOKEN")?.takeIf { it.isNotBlank() }?.let { add(TelegramAdapter(it)) }
-        System.getenv("DISCORD_TOKEN")?.takeIf { it.isNotBlank() }?.let { add(DiscordAdapter(it)) }
-        val matrixHome = System.getenv("MATRIX_HOMESERVER")
-        val matrixToken = System.getenv("MATRIX_TOKEN")
-        if (!matrixHome.isNullOrBlank() && !matrixToken.isNullOrBlank()) add(MatrixAdapter(matrixHome, matrixToken))
-        val slackBotToken = System.getenv("SLACK_BOT_TOKEN")
-        val slackAppToken = System.getenv("SLACK_APP_TOKEN")
-        if (!slackBotToken.isNullOrBlank() && !slackAppToken.isNullOrBlank()) {
+        token("TG_TOKEN")?.let { add(TelegramAdapter(it)) }
+        token("DISCORD_TOKEN")?.let { add(DiscordAdapter(it)) }
+        val matrixHome = token("MATRIX_HOMESERVER")
+        val matrixToken = token("MATRIX_TOKEN")
+        if (matrixHome != null && matrixToken != null) add(MatrixAdapter(matrixHome, matrixToken))
+        val slackBotToken = token("SLACK_BOT_TOKEN")
+        val slackAppToken = token("SLACK_APP_TOKEN")
+        if (slackBotToken != null && slackAppToken != null) {
             add(SlackAdapter(botToken = slackBotToken, appToken = slackAppToken))
         }
-        val twitchClientId = System.getenv("TWITCH_CLIENT_ID")
-        val twitchToken = System.getenv("TWITCH_TOKEN")
-        val twitchChannel = System.getenv("TWITCH_CHANNEL")
-        if (!twitchClientId.isNullOrBlank() && !twitchToken.isNullOrBlank() && !twitchChannel.isNullOrBlank()) {
+        val twitchClientId = token("TWITCH_CLIENT_ID")
+        val twitchToken = token("TWITCH_TOKEN")
+        val twitchChannel = token("TWITCH_CHANNEL")
+        if (twitchClientId != null && twitchToken != null && twitchChannel != null) {
             add(
                 TwitchAdapter(
                     clientId = twitchClientId,
                     accessToken = twitchToken,
                     channel = twitchChannel,
                     // Optional: with the secret + refresh token, an expired access token refreshes itself.
-                    clientSecret = System.getenv("TWITCH_CLIENT_SECRET"),
-                    refreshToken = System.getenv("TWITCH_REFRESH_TOKEN"),
+                    clientSecret = token("TWITCH_CLIENT_SECRET"),
+                    refreshToken = token("TWITCH_REFRESH_TOKEN"),
                 ),
             )
         }
     }
     if (adapters.isEmpty()) consoleEcho() else liveEcho(adapters)
+}
+
+/**
+ * Reads a token from the environment, falling back to a `.env` file found at or above the working
+ * directory. The fallback matters for IDE launches: IntelliJ's gutter arrow generates its own exec
+ * task with its own environment, bypassing whatever the Gradle `run` task injects. Blank values
+ * count as absent.
+ */
+private fun tokenSource(): (String) -> String? {
+    val dotEnv = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+        .take(4)
+        .map { it.resolve(".env") }
+        .firstOrNull { it.isFile }
+        ?.readLines()
+        ?.filter { it.isNotBlank() && !it.startsWith("#") && "=" in it }
+        ?.associate { it.substringBefore('=').trim() to it.substringAfter('=').trim() }
+        .orEmpty()
+    return { key -> (System.getenv(key) ?: dotEnv[key])?.takeIf { it.isNotBlank() } }
 }
 
 private suspend fun CoroutineScope.liveEcho(adapters: List<ChannelAdapter>) {

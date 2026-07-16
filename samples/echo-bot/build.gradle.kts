@@ -20,10 +20,12 @@ application {
     mainClass = "kurier.samples.echo.MainKt"
 }
 
-tasks.named<JavaExec>("run") {
+// All JavaExec tasks, not just `run`: IntelliJ's gutter arrow generates its own `MainKt.main()`
+// exec task that bypasses `run` — without this it silently starts tokenless in console-echo mode.
+tasks.withType<JavaExec>().configureEach {
     standardInput = System.`in`
 
-    // Load .env (gitignored) so `run` picks up TG_TOKEN locally without exporting it.
+    // Load .env (gitignored) so a local run picks up TG_TOKEN etc. without exporting them.
     rootProject.file(".env").takeIf { it.exists() }
         ?.readLines()
         ?.filter { it.isNotBlank() && !it.startsWith("#") && "=" in it }

@@ -288,7 +288,7 @@ fake.receive("ping")                 // suspends until the gateway is subscribed
 
 ```bash
 ./gradlew build                                # compile + tests + ktlint + detekt
-./gradlew :samples:echo-bot:run                # interactive demo; set TG_TOKEN / DISCORD_TOKEN / … for live platforms
+./gradlew :samples:echo-bot:run                # interactive demo; reads tokens (TG_TOKEN, SLACK_BOT_TOKEN, …) from env vars or a repo-root .env
 printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke test (in-memory)
 ```
 

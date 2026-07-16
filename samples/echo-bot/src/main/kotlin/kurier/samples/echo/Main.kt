@@ -101,7 +101,7 @@ private suspend fun CoroutineScope.consoleEcho() {
         gateway.messages.collect { message -> message.reply("echo: ${message.text}") }
     }
 
-    println("kurier echo-bot — type a message, Ctrl+D to exit (set TG_TOKEN or DISCORD_TOKEN for live)")
+    println("kurier echo-bot — type a message, Ctrl+D to exit (add tokens to env or a repo-root .env for live platforms)")
     var received = 0
     // The blocking readlnOrNull() must run on Dispatchers.IO: `suspend main` has no
     // dispatcher, so without one this loop would resume nested on the gateway's worker

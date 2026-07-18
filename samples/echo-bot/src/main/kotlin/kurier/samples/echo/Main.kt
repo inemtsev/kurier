@@ -8,10 +8,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kurier.ChannelAdapter
-import kurier.chatGateway
 import kurier.discord.DiscordAdapter
 import kurier.matrix.MatrixAdapter
 import kurier.reply
+import kurier.runtime.chatGateway
 import kurier.slack.SlackAdapter
 import kurier.telegram.TelegramAdapter
 import kurier.testing.FakeAdapter

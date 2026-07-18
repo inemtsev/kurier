@@ -1,12 +1,15 @@
-package kurier.testing
+package kurier.testing.contract
 
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
 import kurier.Capability
 import kurier.Channel
 import kurier.Content
+import kurier.KurierException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -32,6 +35,14 @@ public abstract class ChannelContract {
     /** Returns a fresh subject for each test — no state should leak between invariants. */
     public abstract fun newSubject(): Subject
 
+    /**
+     * A channel whose underlying platform call fails on [Channel.send] — proves the SPI error
+     * contract: platform failures must surface as [KurierException], never as `internal` adapter
+     * types or raw SDK exceptions. Return null (the default) only while the adapter has no failing
+     * fake; the invariant is then skipped.
+     */
+    public open fun newFailingChannel(): Channel? = null
+
     @Test
     public fun `supports is total and deterministic`() {
         val channel = newSubject().channel
@@ -45,7 +56,7 @@ public abstract class ChannelContract {
     }
 
     @Test
-    public fun `send returns a SentMessage addressed to this channel`() = runTest {
+    public fun `send returns a SentMessage addressed to this channel`(): TestResult = runTest {
         val subject = newSubject()
 
         val sent = subject.channel.send(Content.text("hello"))
@@ -56,7 +67,7 @@ public abstract class ChannelContract {
     }
 
     @Test
-    public fun `sendStreaming ends with the full concatenated text`() = runTest {
+    public fun `sendStreaming ends with the full concatenated text`(): TestResult = runTest {
         val subject = newSubject()
 
         subject.channel.sendStreaming(flowOf("Hello, ", "stream", "!"))
@@ -65,7 +76,7 @@ public abstract class ChannelContract {
     }
 
     @Test
-    public fun `streaming without EDITING degrades to a single send`() = runTest {
+    public fun `streaming without EDITING degrades to a single send`(): TestResult = runTest {
         val subject = newSubject()
         // Only meaningful for platforms that can't edit; editable ones are exercised by the test above.
         if (subject.channel.supports(Capability.EDITING)) return@runTest
@@ -76,8 +87,14 @@ public abstract class ChannelContract {
     }
 
     @Test
-    public fun `indicateTyping never throws`() = runTest {
+    public fun `indicateTyping never throws`(): TestResult = runTest {
         // Optional features degrade to no-ops, never throw (Capability rule #6).
         newSubject().channel.indicateTyping()
+    }
+
+    @Test
+    public fun `send failures surface as KurierException`(): TestResult = runTest {
+        val channel = newFailingChannel() ?: return@runTest
+        assertFailsWith<KurierException> { channel.send(Content.text("boom")) }
     }
 }

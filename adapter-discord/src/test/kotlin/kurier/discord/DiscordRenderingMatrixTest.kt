@@ -1,6 +1,6 @@
 package kurier.discord
 
-import kurier.testing.assertRenderingMatrix
+import kurier.testing.contract.assertRenderingMatrix
 import kotlin.test.Test
 
 /** Discord renders escaped Markdown; the golden documents the escaping + link/empty-span degradations. */

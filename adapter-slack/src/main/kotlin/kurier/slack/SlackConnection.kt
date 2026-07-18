@@ -274,7 +274,7 @@ private fun Exception.isTransient(): Boolean = when (this) {
     else -> false
 }
 
-private fun SlackApiException.isRetryable(): Boolean =
+internal fun SlackApiException.isRetryable(): Boolean =
     response.code == HTTP_TOO_MANY_REQUESTS || response.code >= HTTP_SERVER_ERROR
 
 private const val HTTP_TOO_MANY_REQUESTS = 429
@@ -302,8 +302,9 @@ private fun ReactionRemovedEvent.reactionInfo(): SlackReactionInfo =
 /**
  * Builds the [ChannelEvent] for a reaction, or null when it is the bot's own reaction (the stream
  * echoes those back) or when it targets something other than a message (file reactions carry no
- * channel/ts). The emoji stays a Slack shortcode (`"thumbsup"`). Pure, so the mapping and self-filter
- * are unit-testable without a socket.
+ * channel/ts). The shortcode maps to canonical unicode where known (`"thumbsup"` → 👍); custom
+ * workspace emoji pass through by name. Pure, so the mapping and self-filter are unit-testable
+ * without a socket.
  */
 internal fun reactionEvent(
     platform: PlatformId,
@@ -316,7 +317,7 @@ internal fun reactionEvent(
         build(
             ChannelId("${platform.value}:${info.channelId}"),
             MessageId(info.messageTs),
-            info.name,
+            slackNameToEmoji(info.name),
             Author(info.userId),
         )
     } else {

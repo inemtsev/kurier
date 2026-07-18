@@ -10,10 +10,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kurier.Channel
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.PlatformId
-import kurier.testing.ChannelContract
+import kurier.testing.contract.ChannelContract
 
 /** Conformance of [TwitchChannel] (a non-editing channel that buffers streams) to the [ChannelContract]. */
 class TwitchChannelContractTest : ChannelContract() {
@@ -44,5 +45,27 @@ class TwitchChannelContractTest : ChannelContract() {
         return Subject(channel) {
             bodies.mapNotNull { json.parseToJsonElement(it).jsonObject["message"]?.jsonPrimitive?.contentOrNull }
         }
+    }
+
+    /** Exercises the real failure path: a Helix 5xx must surface as [kurier.KurierException]. */
+    override fun newFailingChannel(): Channel {
+        val api = TwitchApi(
+            clientId = "cid",
+            accessToken = "token",
+            engine = MockEngine {
+                respond(
+                    """{"error":"Internal Server Error","status":500,"message":""}""",
+                    HttpStatusCode.InternalServerError,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        return TwitchChannel(
+            outbound = TwitchOutbound(api = api, broadcasterId = "100", senderId = "999"),
+            id = ChannelId("twitch:100"),
+            platform = PlatformId("twitch"),
+            kind = ChannelKind.BROADCAST,
+            name = null,
+        )
     }
 }

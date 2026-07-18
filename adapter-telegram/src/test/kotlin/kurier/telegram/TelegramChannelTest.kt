@@ -178,4 +178,21 @@ class TelegramChannelTest {
 
         api.close()
     }
+
+    @Test
+    fun `react swallows a platform rejection`() = runTest {
+        // Telegram allows only a fixed reaction set — a rejected emoji must no-op, not throw.
+        val api = TelegramApi(
+            "test",
+            MockEngine {
+                respond("""{"ok":false,"error_code":400,"description":"REACTION_INVALID"}""", HttpStatusCode.OK, jsonHeaders)
+            },
+        )
+        val bot = User(id = 999, isBot = true, username = "echobot")
+        val message = Message(messageId = 7, chat = Chat(id = 42, type = "private"), date = 0, text = "hi")
+
+        message.toIncomingMessage(PlatformId("telegram"), api, bot).react("🦖") // must not throw
+
+        api.close()
+    }
 }

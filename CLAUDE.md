@@ -11,9 +11,12 @@ Telegram/Discord/Slack behind it. The flagship feature is **streaming-edit LLM r
 channel module of an Android on-phone agent gateway, so Android compatibility is non-negotiable.
 
 **Maven coordinates:** group id `com.eventslooped` (author's domain, Sonatype-verifiable; set in the root build) —
-artifacts `kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing`. Code packages are the bare brand
+artifacts `kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing`, `kurier-testing-contract`. Code packages live under the bare brand
 `kurier` (group≠package is standard — cf. Coil/Arrow over their domain groups; branded packages outlive group/domain
-changes, the SQLDelight rename being the cautionary tale). Do not rename packages post-0.1.0.
+changes, the SQLDelight rename being the cautionary tale). Each published artifact exclusively owns one package prefix:
+`core` owns bare `kurier`; every other artifact owns `kurier.<module>` (`kurier.runtime`, `kurier.testing`,
+`kurier.telegram`, …). Two artifacts must never share a package — that's a JPMS/OSGi-hostile split package.
+Do not rename packages post-0.1.0.
 
 ## Commands
 
@@ -34,7 +37,8 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 | `runtime` | `chatGateway {}` DSL + `DefaultChatGateway` (supervision, flow merging) | Depends only on `core` |
 | `adapter-telegram` | Telegram Bot API, built directly on Ktor client | M1 |
 | `adapter-discord` | Wraps Kord | M2 |
-| `testing` | `FakeAdapter`/`FakeChannel` for unit-testing bots | Published artifact, not test-only code |
+| `testing` | `FakeAdapter`/`FakeChannel` for unit-testing bots | Published artifact, not test-only code; framework-free |
+| `testing-contract` | Shared SPI conformance suite (`ChannelContract`) + rendering matrix samples | JUnit5-bound; separate module so `testing` stays framework-free |
 | `samples/echo-bot` | Runnable demo | Exempt from library rules |
 
 ## Hard rules
@@ -56,6 +60,9 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 - `suspend` for anything that does I/O; `Flow` for streams. No blocking calls, no `GlobalScope`, no `runBlocking` in library code.
 - Value classes for identifiers (`PlatformId`, `ChannelId`, `MessageId`); channel ids follow `"<platform>:<native id>"`.
 - Options via data classes with default parameters (`StreamingOptions`), not builders.
+- Growth-prone public types (`Content`, `Attachment`) are plain classes with hand-written `equals`/`hashCode` — no
+  `copy`/`componentN` to freeze. Post-0.1.0, new fields land as trailing default parameters plus a
+  `@Deprecated(level = HIDDEN)` secondary constructor preserving each previously published signature.
 - Render `RichText` to a platform via its structured/entity API, not generated markup, where one exists — Telegram uses
   the `entities` parameter (text + offset-based spans; no escaping, no formatting-injection surface), **never** MarkdownV2.
   The full rendering matrix + golden tests land in M3.

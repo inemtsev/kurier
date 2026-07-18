@@ -17,13 +17,10 @@ java {
 }
 
 dependencies {
-    // Deliberately core-only: kurier-testing stays framework-free (no JUnit on consumers'
-    // classpaths) and KMP-promotable. The JUnit5-bound conformance suite lives in :testing-contract.
     api(project(":core"))
 
-    testImplementation(project(":testing-contract")) // FakeChannel proves the shared ChannelContract
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
+    // api, not implementation: the contract's compile surface IS the test framework — subclasses
+    // reference kotlin.test's @Test/assertions and runTest directly.
+    api(libs.kotlin.test.junit5)
+    api(libs.kotlinx.coroutines.test)
 }

@@ -27,20 +27,21 @@ internal class TelegramChannel(
 ) : Channel {
 
     /**
-     * Reports what the Telegram platform can do — not what this adapter has wired yet.
-     * Callers branch on this; unimplemented features degrade to no-ops rather than throw.
-     * Contract: every `true` here must be backed by a real implementation by 0.1.0.
+     * Reports what this adapter actually does through kurier today — every `true` is backed by a
+     * real implementation. Platform features that exist but aren't wired yet report `false` and
+     * flip to `true` (an additive, safe change) once they land.
      */
     override fun supports(capability: Capability): Boolean = when (capability) {
         Capability.EDITING,
         Capability.REACTIONS,
-        Capability.FILES,
         Capability.TYPING,
-        Capability.BUTTONS,
         -> true
 
-        // Provisional: Telegram does have forum topics (THREADS) and voice messages (VOICE);
-        // revisit in M3 once each Capability's cross-platform meaning is defined.
+        // Provisional: Telegram has documents/photos (FILES), inline keyboards (BUTTONS), forum
+        // topics (THREADS), and voice messages (VOICE); outbound wiring — and for buttons a core
+        // API — lands post-0.1.0. Inbound attachments arrive regardless.
+        Capability.FILES,
+        Capability.BUTTONS,
         Capability.THREADS,
         Capability.VOICE,
         -> false

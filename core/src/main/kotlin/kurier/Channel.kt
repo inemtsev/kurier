@@ -38,13 +38,17 @@ public interface Channel {
 
     public fun supports(capability: Capability): Boolean
 
+    /**
+     * Sends [content], rendered to the platform's native rich-text dialect.
+     * Platform failures surface as [KurierException]; cancellation passes through untouched.
+     */
     public suspend fun send(content: Content): SentMessage
 
     /**
      * Sends a message that is progressively edited as [tokens] arrive — the
      * primary path for streaming LLM replies. With [StreamingMode.BUFFERED],
      * or on platforms without [Capability.EDITING], the flow is drained and
-     * sent as a single message instead.
+     * sent as a single message instead. Follows [send]'s error contract.
      */
     public suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions = StreamingOptions.Default): SentMessage
 
@@ -56,6 +60,10 @@ public interface Channel {
 
 public suspend fun Channel.send(text: String): SentMessage = send(Content.text(text))
 
+/**
+ * A handle to a message the bot sent. [edit] and [delete] follow [Channel.send]'s error contract:
+ * platform failures surface as [KurierException], cancellation passes through untouched.
+ */
 public interface SentMessage {
     public val id: MessageId
     public val channelId: ChannelId

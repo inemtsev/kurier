@@ -1,4 +1,4 @@
-package kurier
+package kurier.runtime
 
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -13,6 +13,15 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kurier.AdapterConnection
+import kurier.Channel
+import kurier.ChannelAdapter
+import kurier.ChannelEvent
+import kurier.ChannelId
+import kurier.ChatGateway
+import kurier.ConnectionState
+import kurier.IncomingMessage
+import kurier.PlatformId
 
 public fun chatGateway(block: GatewayBuilder.() -> Unit): ChatGateway = GatewayBuilder().apply(block).build()
 

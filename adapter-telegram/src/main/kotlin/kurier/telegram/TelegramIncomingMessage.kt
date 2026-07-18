@@ -6,6 +6,7 @@ import kurier.Channel
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.IncomingMessage
+import kurier.KurierException
 import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
@@ -31,7 +32,12 @@ internal class TelegramIncomingMessage(
     override val raw: Any = source
 
     override suspend fun react(emoji: String) {
-        api.setMessageReaction(source.chat.id, source.messageId, emoji)
+        // Telegram allows only a fixed reaction set, so rejection is an expected outcome — reactions
+        // are decoration and degrade to a no-op (capability rule 6) rather than throw.
+        try {
+            api.setMessageReaction(source.chat.id, source.messageId, emoji)
+        } catch (ignored: KurierException) {
+        }
     }
 }
 

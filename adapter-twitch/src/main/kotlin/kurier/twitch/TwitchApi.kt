@@ -27,6 +27,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kurier.KurierException
 import kotlin.time.Duration
 
 /**
@@ -192,9 +193,20 @@ internal class TwitchApi(
     }
 }
 
-/** Raised when a Helix call responds non-2xx (e.g. bad token, missing scope). */
+/**
+ * Raised when a Helix call responds non-2xx (e.g. bad token, missing scope) or accepts but drops
+ * the message (AutoMod). Retryable on `429`/5xx per the [KurierException] contract.
+ */
 internal class TwitchApiException(
     method: String,
     val status: Int,
     body: String,
-) : RuntimeException("Twitch API $method failed ($status): $body")
+) : KurierException(
+    "Twitch API $method failed ($status): $body",
+    retryable = status == TOO_MANY_REQUESTS || status >= SERVER_ERROR,
+) {
+    private companion object {
+        const val TOO_MANY_REQUESTS = 429
+        const val SERVER_ERROR = 500
+    }
+}

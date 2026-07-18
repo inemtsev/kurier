@@ -1,10 +1,14 @@
-package kurier
+package kurier.runtime
 
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kurier.ConnectionState
+import kurier.PlatformId
+import kurier.reply
 import kurier.testing.FakeAdapter
+import kurier.text
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

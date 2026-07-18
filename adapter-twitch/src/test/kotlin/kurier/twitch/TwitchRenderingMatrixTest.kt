@@ -1,6 +1,6 @@
 package kurier.twitch
 
-import kurier.testing.assertRenderingMatrix
+import kurier.testing.contract.assertRenderingMatrix
 import kotlin.test.Test
 
 /** Twitch chat has no formatting, so every sample flattens to its plain-text projection. */

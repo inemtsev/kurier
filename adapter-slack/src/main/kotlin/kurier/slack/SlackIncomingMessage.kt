@@ -34,7 +34,6 @@ internal class SlackIncomingMessage(
     override val raw: Any = event
 
     override suspend fun react(emoji: String) {
-        // Slack takes emoji shortcodes ("thumbsup"), not unicode — [emoji] is passed through verbatim.
         (channel as? SlackChannel)?.react(id, emoji)
     }
 }

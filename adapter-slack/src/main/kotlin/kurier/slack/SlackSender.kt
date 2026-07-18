@@ -1,6 +1,7 @@
 package kurier.slack
 
 import com.slack.api.methods.MethodsClient
+import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.SlackApiTextResponse
 import com.slack.api.methods.request.chat.ChatDeleteRequest
 import com.slack.api.methods.request.chat.ChatPostMessageRequest
@@ -8,7 +9,9 @@ import com.slack.api.methods.request.chat.ChatUpdateRequest
 import com.slack.api.methods.request.reactions.ReactionsAddRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
+import kurier.KurierException
 import kurier.MessageId
+import java.io.IOException
 
 /**
  * The outbound operations a [SlackChannel] needs, abstracted away from the Slack SDK. The Web API
@@ -59,19 +62,25 @@ internal class MethodsSlackSender(
 
     // runInterruptible keeps the blocking OkHttp call cancellation-responsive: cancelling a streaming
     // reply interrupts the in-flight edit instead of letting it run to completion.
-    private suspend fun <T : SlackApiTextResponse> call(method: String, request: () -> T): T {
-        val response = runInterruptible(Dispatchers.IO) { request() }
-        if (!response.isOk) throw SlackApiCallException(method, response.error)
-        return response
-    }
+    private suspend fun <T : SlackApiTextResponse> call(method: String, request: () -> T): T =
+        try {
+            runInterruptible(Dispatchers.IO) { request() }.okOrThrow(method)
+        } catch (failure: SlackApiException) {
+            throw KurierException("Slack API $method failed: HTTP ${failure.response.code}", failure, failure.isRetryable())
+        } catch (failure: IOException) {
+            throw KurierException("Slack API $method transport failure", failure, retryable = true)
+        }
 }
+
+private fun <T : SlackApiTextResponse> T.okOrThrow(method: String): T =
+    if (isOk) this else throw SlackApiCallException(method, error)
 
 /**
  * A Slack Web API call answered `ok=false` — an HTTP-200 logical error such as `ratelimited` or
- * `channel_not_found`. Transport and HTTP-status failures surface as the SDK's own exceptions.
- * (Not named after the SDK's `SlackApiException`, which this module imports alongside it.)
+ * `channel_not_found`. Transport and HTTP-status failures are wrapped into [KurierException] at the
+ * call site. (Not named after the SDK's `SlackApiException`, which this module imports alongside it.)
  */
 internal class SlackApiCallException(
     method: String,
     error: String?,
-) : RuntimeException("Slack API $method failed: ${error ?: "unknown error"}")
+) : KurierException("Slack API $method failed: ${error ?: "unknown error"}", retryable = error == "ratelimited")

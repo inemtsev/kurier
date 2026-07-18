@@ -5,6 +5,7 @@ import dev.kord.core.Kord
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.core.event.message.MessageCreateEvent
+import kotlinx.coroutines.CancellationException
 import kurier.Attachment
 import kurier.Author
 import kurier.Channel
@@ -36,8 +37,14 @@ internal class DiscordIncomingMessage(
         message.referencedMessage?.let { MessageRef(channel.id, MessageId(it.id.toString())) }
     override val raw: Any = event
 
+    @Suppress("TooGenericExceptionCaught") // raw Kord call: any rejection degrades to a no-op (capability rule 6)
     override suspend fun react(emoji: String) {
-        message.addReaction(ReactionEmoji.Unicode(emoji))
+        try {
+            message.addReaction(ReactionEmoji.Unicode(emoji))
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (ignored: Exception) {
+        }
     }
 }
 

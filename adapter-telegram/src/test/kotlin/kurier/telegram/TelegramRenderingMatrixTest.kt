@@ -1,6 +1,6 @@
 package kurier.telegram
 
-import kurier.testing.assertRenderingMatrix
+import kurier.testing.contract.assertRenderingMatrix
 import kotlin.test.Test
 
 /** Telegram renders text + offset-based entities; the golden pins offsets (UTF-16) and empty-span dropping. */

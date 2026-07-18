@@ -17,6 +17,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
+import kurier.KurierException
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -115,7 +116,7 @@ internal class TelegramApi(
         } catch (failure: Exception) {
             // The token lives in the URL path, so transport errors echo it in their message;
             // scrub it before the failure can reach ConnectionState.
-            throw redactToken(failure, token)
+            throw redactToken(failure, token).asKurier(name)
         }
         return envelope.unwrap(name)
     }
@@ -136,14 +137,18 @@ internal class TelegramApi(
 }
 
 /**
- * Raised when the Bot API responds with `ok: false`. The poll loop backs off and
- * retries transient failures, but gives up on [isFatal] ones — see [isFatal].
+ * Raised when the Bot API responds with `ok: false`. Retryable on `429`/5xx per the
+ * [KurierException] contract; the poll loop additionally backs off on transient failures
+ * but gives up on [isFatal] ones — see [isFatal].
  */
 internal class TelegramApiException(
     method: String,
     val errorCode: Int?,
     description: String?,
-) : RuntimeException("Telegram API $method failed (${errorCode ?: "?"}): ${description ?: "no description"}") {
+) : KurierException(
+    "Telegram API $method failed (${errorCode ?: "?"}): ${description ?: "no description"}",
+    retryable = errorCode == TOO_MANY_REQUESTS || (errorCode ?: 0) >= SERVER_ERROR,
+) {
 
     /**
      * True for a permanently rejected token (`401`) — retrying never succeeds, so the
@@ -154,16 +159,24 @@ internal class TelegramApiException(
 
     private companion object {
         const val UNAUTHORIZED = 401
+        const val TOO_MANY_REQUESTS = 429
+        const val SERVER_ERROR = 500
         val FATAL_CODES = setOf(UNAUTHORIZED)
     }
 }
 
 /**
  * A transport failure with the bot token scrubbed from its message — safe to surface in
- * [kurier.ConnectionState]. The poll loop treats it like any other transient failure (back off
- * and retry); only its presentation differs from the raw Ktor exception it stands in for.
+ * [kurier.ConnectionState]. Retryable by definition (the request never got an answer); the
+ * token-bearing cause chain is deliberately dropped, so `cause` is null here.
  */
-internal class RedactedRequestException(message: String) : RuntimeException(message)
+internal class RedactedRequestException(message: String) : KurierException(message, retryable = true)
+
+/** Maps transport failures (timeouts, DNS, resets) onto the [KurierException] contract as retryable. */
+private fun Throwable.asKurier(method: String): KurierException = when (this) {
+    is KurierException -> this
+    else -> KurierException("Telegram API $method transport failure: ${this::class.simpleName}", cause = this, retryable = true)
+}
 
 /** Unwraps the Bot API `{ ok, result }` envelope, raising [TelegramApiException] on an `ok: false`. */
 private fun <T> Response<T>.unwrap(method: String): T =

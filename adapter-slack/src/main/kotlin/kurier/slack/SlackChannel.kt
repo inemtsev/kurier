@@ -6,6 +6,7 @@ import kurier.Channel
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.Content
+import kurier.KurierException
 import kurier.MessageId
 import kurier.PlatformId
 import kurier.SentMessage
@@ -48,9 +49,17 @@ internal class SlackChannel(
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)
 
-    /** Adds a reaction via `reactions.add`. [name] is a Slack shortcode (`"thumbsup"`), not unicode. */
-    suspend fun react(messageId: MessageId, name: String) {
-        sender.react(messageId, name)
+    /**
+     * Adds a reaction via `reactions.add`, best-effort per [kurier.IncomingMessage.react]'s contract:
+     * unicode [emoji] translates to a Slack shortcode (ASCII input is already one); unmapped emoji
+     * and platform rejections degrade to a no-op.
+     */
+    suspend fun react(messageId: MessageId, emoji: String) {
+        val name = emojiToSlackName(emoji) ?: return
+        try {
+            sender.react(messageId, name)
+        } catch (ignored: KurierException) {
+        }
     }
 
     private companion object {

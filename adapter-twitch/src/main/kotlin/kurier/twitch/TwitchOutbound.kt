@@ -1,5 +1,7 @@
 package kurier.twitch
 
+import kotlinx.coroutines.CancellationException
+import kurier.KurierException
 import kurier.MessageId
 
 /**
@@ -12,6 +14,14 @@ internal class TwitchOutbound(
     private val broadcasterId: String,
     private val senderId: String,
 ) {
-    suspend fun send(text: String): MessageId =
+    @Suppress("TooGenericExceptionCaught") // transport failures must honor the KurierException contract
+    suspend fun send(text: String): MessageId = try {
         MessageId(api.sendMessage(broadcasterId = broadcasterId, senderId = senderId, message = text))
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (failure: KurierException) {
+        throw failure
+    } catch (failure: Exception) {
+        throw KurierException("Twitch chat send transport failure", cause = failure, retryable = true)
+    }
 }

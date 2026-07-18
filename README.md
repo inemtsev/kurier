@@ -111,6 +111,7 @@ Everything below lives in the **`core`** module — pure Kotlin, coroutines its 
 | `PlatformId` / `ChannelId` / `MessageId` | Value-class identifiers; channel ids follow `"<platform>:<native id>"`. |
 | `Capability` | Optional platform features, queryable via `Channel.supports()`. |
 | `ConnectionState` | Per-platform connection lifecycle. |
+| `KurierException` | The failure contract: send/edit/delete failures surface as this, portably. `retryable` says whether trying again can succeed; `cause` carries the platform exception. |
 | `ChannelAdapter` / `AdapterConnection` | The SPI a platform integration implements. |
 
 ### Receiving and replying
@@ -203,14 +204,16 @@ degrade to no-ops instead of throwing. No lowest-common-denominator API.
 | `EDITING` — streaming edits | ✅ | ✅ | ✅ | — *(buffers)* | ✅ |
 | `REACTIONS` | ✅ | ✅ | ✅ | — | ✅² |
 | `TYPING` | ✅ | ✅ | ✅ | — | — |
-| `FILES` | ✅ | ✅ | ✅ | — | —¹ |
-| `BUTTONS` | ✅ | ✅ | — | — | —¹ |
+| `FILES` | —¹ | —¹ | —¹ | — | —¹ |
+| `BUTTONS` | —¹ | —¹ | — | — | —¹ |
 | `THREADS` | —¹ | ✅ | —¹ | — | —¹ |
 | `VOICE` | —¹ | — | —¹ | — | — |
 
-¹ Provisional `false`: the platform has the feature but it isn't wired yet (Slack: Block Kit buttons and file uploads
-are deferred past 0.1.0).
-² Slack reactions take emoji **shortcodes** (`"thumbsup"`), not unicode — `react(emoji)` passes the string through.
+¹ Provisional `false`: the platform has the feature but the adapter hasn't wired it yet — outbound file and button
+support lands post-0.1.0, flipping these to ✅ additively. `supports()` only reports what works through kurier today.
+² `react(emoji)` takes canonical **unicode** (`"👍"`) everywhere and never throws — platform-rejected emoji degrade to
+a no-op. The Slack adapter translates a common set to and from shortcodes; unmapped emoji no-op outbound, and custom
+workspace emoji surface by name inbound.
 
 ### Connection lifecycle
 
@@ -254,6 +257,10 @@ public interface AdapterConnection {
 }
 ```
 
+Prove conformance with the shared suite: add `testImplementation("com.eventslooped:kurier-testing-contract:<version>")`,
+subclass `ChannelContract`, and the same invariants that gate the bundled adapters (streaming degradation, the
+`KurierException` error contract, no-op capability fallbacks) run against your adapter.
+
 ## Modules
 
 | Module | Role | Key constraint |
@@ -265,11 +272,13 @@ public interface AdapterConnection {
 | `adapter-matrix` | Matrix via Trixnity (`/sync`) | — |
 | `adapter-twitch` | Twitch EventSub + Helix over Ktor | — |
 | `adapter-slack` | Slack via Socket Mode (Slack SDK, Java-WebSocket backend) | — |
-| `testing` | `FakeAdapter` / `FakeChannel` for unit-testing bots | Published artifact, not test-only |
+| `testing` | `FakeAdapter` / `FakeChannel` for unit-testing bots | Published artifact, not test-only; framework-free |
+| `testing-contract` | Shared SPI conformance suite (`ChannelContract`) + rendering-matrix samples | Published artifact; JUnit5-bound, consumed as a test dependency |
 | `samples/echo-bot` | Runnable end-to-end demo (no tokens required) | Exempt from library rules |
 
-Published as `com.eventslooped:kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing` (coordinates
-reserved; first publish is 0.1.0 in M4). Code packages are the bare brand `kurier`.
+Published as `com.eventslooped:kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing`,
+`kurier-testing-contract` (coordinates reserved; first publish is 0.1.0 in M4). Code packages live under the bare brand `kurier`: core owns the bare package,
+every other artifact owns `kurier.<module>` (`kurier.runtime`, `kurier.telegram`, …).
 
 ## Testing your bot
 

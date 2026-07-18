@@ -21,18 +21,28 @@ class SlackEventTest {
         SlackReactionInfo(userId = user, channelId = "C123", messageTs = "1700000000.000100", name = "thumbsup")
 
     @Test
-    fun `a reaction from another user maps to ReactionAdded`() {
+    fun `a reaction from another user maps to ReactionAdded with canonical unicode`() {
         assertEquals(
-            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "thumbsup", Author("U200")),
+            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "👍", Author("U200")),
             reactionEvent(platform, bot, info(), ::ReactionAdded),
         )
     }
 
     @Test
-    fun `a reaction removal maps to ReactionRemoved`() {
+    fun `a reaction removal maps to ReactionRemoved with canonical unicode`() {
         assertEquals(
-            ReactionRemoved(ChannelId("slack:C123"), MessageId("1700000000.000100"), "thumbsup", Author("U200")),
+            ReactionRemoved(ChannelId("slack:C123"), MessageId("1700000000.000100"), "👍", Author("U200")),
             reactionEvent(platform, bot, info(), ::ReactionRemoved),
+        )
+    }
+
+    @Test
+    fun `a custom workspace emoji passes through by name`() {
+        val custom = SlackReactionInfo(userId = "U200", channelId = "C123", messageTs = "1700000000.000100", name = "party-parrot")
+
+        assertEquals(
+            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "party-parrot", Author("U200")),
+            reactionEvent(platform, bot, custom, ::ReactionAdded),
         )
     }
 

@@ -7,3 +7,10 @@ style:
   MagicNumber:
     # Samples favor readability over constants; tests are excluded by default config.
     excludes: ['**/samples/**', '**/test/**']
+
+naming:
+  FunctionNaming:
+    # kurier-testing-contract ships @Test methods in its *main* source set (a published conformance
+    # suite), where the default test-sources exclusion doesn't apply. Backtick names are the
+    # convention for test methods; exempt exactly those.
+    ignoreAnnotated: ['Test']

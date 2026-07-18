@@ -1,5 +1,7 @@
 package kurier.testing
 
+import kurier.testing.contract.ChannelContract
+
 /** [FakeChannel] is the reference implementation, so it must satisfy the shared [ChannelContract]. */
 class FakeChannelContractTest : ChannelContract() {
     override fun newSubject(): Subject {

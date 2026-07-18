@@ -6,6 +6,7 @@ import kurier.Channel
 import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.Content
+import kurier.KurierException
 import kurier.MessageId
 import kurier.PlatformId
 import kurier.SentMessage
@@ -30,11 +31,12 @@ internal class MatrixChannel(
     override fun supports(capability: Capability): Boolean = when (capability) {
         Capability.EDITING,
         Capability.REACTIONS,
-        Capability.FILES,
         Capability.TYPING,
         -> true
 
-        // Threads (m.thread) and voice exist in Matrix but aren't wired yet; revisit in M3.
+        // Provisional: media upload (FILES), threads (m.thread), and voice exist in Matrix but
+        // aren't wired yet — outbound attachments would be silently dropped today.
+        Capability.FILES,
         Capability.THREADS,
         Capability.VOICE,
         -> false
@@ -54,9 +56,15 @@ internal class MatrixChannel(
         sender.typing()
     }
 
-    /** Annotates [messageId] with [emoji] — an `m.reaction` event. Used by `IncomingMessage.react`. */
+    /**
+     * Annotates [messageId] with [emoji] — an `m.reaction` event. Used by `IncomingMessage.react`;
+     * best-effort per its contract, so homeserver rejections degrade to a no-op.
+     */
     suspend fun react(messageId: MessageId, emoji: String) {
-        sender.react(messageId, emoji)
+        try {
+            sender.react(messageId, emoji)
+        } catch (ignored: KurierException) {
+        }
     }
 
     private companion object {

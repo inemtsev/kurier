@@ -13,7 +13,14 @@ public sealed interface ConnectionState {
     public data object Closed : ConnectionState
 }
 
-public sealed interface ChannelEvent {
+/**
+ * A non-message happening in a channel (deletions, reactions, …).
+ *
+ * Deliberately **not** sealed: new event types (message edits, button interactions, membership
+ * changes) are added in minor releases. Always include an `else` branch when matching on events —
+ * unrecognized events must be safe to ignore.
+ */
+public interface ChannelEvent {
     public val channelId: ChannelId
 
     public data class MessageDeleted(override val channelId: ChannelId, public val messageId: MessageId) : ChannelEvent
@@ -21,6 +28,7 @@ public sealed interface ChannelEvent {
     public data class ReactionAdded(
         override val channelId: ChannelId,
         public val messageId: MessageId,
+        /** Canonical unicode (`"👍"`) where the platform's form maps to one; platform-custom emoji surface in native form. */
         public val emoji: String,
         public val by: Author,
     ) : ChannelEvent
@@ -28,6 +36,7 @@ public sealed interface ChannelEvent {
     public data class ReactionRemoved(
         override val channelId: ChannelId,
         public val messageId: MessageId,
+        /** Canonical unicode (`"👍"`) where the platform's form maps to one; platform-custom emoji surface in native form. */
         public val emoji: String,
         public val by: Author,
     ) : ChannelEvent

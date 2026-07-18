@@ -1,6 +1,6 @@
 package kurier.matrix
 
-import kurier.testing.assertRenderingMatrix
+import kurier.testing.contract.assertRenderingMatrix
 import kotlin.test.Test
 
 /** Matrix renders a plain `body` plus an optional HTML `formatted_body` (null for pure-plain text). */

@@ -1,7 +1,7 @@
 package kurier.slack
 
 import kurier.Content
-import kurier.testing.assertRenderingMatrix
+import kurier.testing.contract.assertRenderingMatrix
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

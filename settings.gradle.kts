@@ -22,5 +22,6 @@ include(
     ":adapter-twitch",
     ":adapter-slack",
     ":testing",
+    ":testing-contract",
     ":samples:echo-bot",
 )

@@ -28,13 +28,17 @@ internal class DiscordChannel(
     override fun supports(capability: Capability): Boolean = when (capability) {
         Capability.EDITING,
         Capability.REACTIONS,
-        Capability.FILES,
         Capability.TYPING,
         Capability.THREADS,
-        Capability.BUTTONS,
         -> true
 
-        Capability.VOICE -> false
+        // Provisional: Discord has attachments (FILES) and message components (BUTTONS), but
+        // outbound wiring — and for buttons a core API — lands post-0.1.0. supports() reports
+        // what the adapter does today, not what the platform could.
+        Capability.FILES,
+        Capability.BUTTONS,
+        Capability.VOICE,
+        -> false
     }
 
     override suspend fun send(content: Content): SentMessage =

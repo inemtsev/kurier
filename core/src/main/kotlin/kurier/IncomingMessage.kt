@@ -25,7 +25,11 @@ public interface IncomingMessage {
     public suspend fun reply(tokens: Flow<String>, options: StreamingOptions = StreamingOptions.Default): SentMessage =
         channel.sendStreaming(tokens, options)
 
-    /** Adds a reaction where supported; no-op elsewhere. */
+    /**
+     * Adds a reaction, best-effort. [emoji] is canonical **unicode** (`"👍"`); adapters translate
+     * to platform-native forms where needed. Never throws into bot code: unsupported platforms
+     * and platform-rejected emoji degrade to a no-op (cancellation excepted).
+     */
     public suspend fun react(emoji: String) {
         // no-op by default; adapters override where the platform supports it
     }

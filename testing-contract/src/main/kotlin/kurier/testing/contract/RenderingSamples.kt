@@ -1,4 +1,4 @@
-package kurier.testing
+package kurier.testing.contract
 
 import kurier.Content
 import kurier.RichNode

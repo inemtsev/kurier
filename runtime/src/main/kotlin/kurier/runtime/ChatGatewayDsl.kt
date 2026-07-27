@@ -81,8 +81,11 @@ internal class DefaultChatGateway(private val adapters: List<ChannelAdapter>) : 
             scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 connection.events.catch { markFailed(adapter.platform, it) }.collect { _events.emit(it) }
             }
+            // No catch on state: a StateFlow structurally never completes exceptionally (SharedFlow.catch
+            // is deprecated as inert); a pathological impl throwing from collect is contained by the
+            // scope's CoroutineExceptionHandler instead of crashing the host.
             scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                connection.state.catch { markFailed(adapter.platform, it) }.collect { state ->
+                connection.state.collect { state ->
                     _connections.update { current ->
                         // Failed is terminal (see ConnectionState): once a platform fails — reported
                         // by the adapter or set by the containment guards — later state reports

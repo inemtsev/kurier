@@ -49,6 +49,9 @@ public fun StreamingOptions.withReplyTo(replyTo: MessageRef?): StreamingOptions 
  *
  * Not `kotlinx.coroutines.channels.Channel`; the name is deliberate and frozen. Code using both
  * should alias the coroutines import: `import kotlinx.coroutines.channels.Channel as CoroutineChannel`.
+ *
+ * Conveniences with exactly one correct implementation (`send(String)`) live as extensions,
+ * keeping the surface adapters and fakes must implement minimal.
  */
 public interface Channel {
     public val id: ChannelId

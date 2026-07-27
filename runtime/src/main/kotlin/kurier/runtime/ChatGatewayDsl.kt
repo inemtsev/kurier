@@ -26,9 +26,14 @@ import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
 
-public fun chatGateway(block: GatewayBuilder.() -> Unit): ChatGateway = GatewayBuilder().apply(block).build()
+/** Scopes the [ChatGatewayBuilder] receiver so a nested block can't accidentally call an outer builder. */
+@DslMarker
+public annotation class ChatGatewayDsl
 
-public class GatewayBuilder internal constructor() {
+public fun chatGateway(block: ChatGatewayBuilder.() -> Unit): ChatGateway = ChatGatewayBuilder().apply(block).build()
+
+@ChatGatewayDsl
+public class ChatGatewayBuilder internal constructor() {
     private val adapters = mutableListOf<ChannelAdapter>()
 
     public fun install(adapter: ChannelAdapter) {

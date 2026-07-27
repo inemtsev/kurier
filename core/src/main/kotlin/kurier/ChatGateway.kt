@@ -6,6 +6,11 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * The application-facing entry point: all installed adapters merged behind
  * one platform-agnostic API.
+ *
+ * Implemented by `kurier-runtime`'s `chatGateway {}`; not intended for third-party implementation —
+ * to test bot logic, install a `FakeAdapter` from `kurier-testing` into a real gateway rather than
+ * faking this interface. New members may be added in minor releases, with default implementations
+ * where possible.
  */
 public interface ChatGateway {
     /**

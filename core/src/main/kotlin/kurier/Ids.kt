@@ -32,7 +32,10 @@ public fun ChannelId.nativeId(platform: PlatformId): String? {
     return value.substring(separator + 1).takeIf { it.isNotBlank() }
 }
 
-/** Platform-native message identifier. */
+/**
+ * Platform-native message identifier. Unique only within its channel on some platforms
+ * (Telegram `message_id`, Slack `ts`); use [MessageRef] when a message must be addressed globally.
+ */
 @JvmInline
 public value class MessageId(public val value: String) {
     override fun toString(): String = value
@@ -83,10 +86,18 @@ public enum class Capability {
     TYPING,
 }
 
+/**
+ * A message's sender. [id] is the platform-native user id (see [UserId]); adapters use the
+ * sentinel `"unknown"` when the platform omits a sender. [displayName] is best-effort — null
+ * where resolving it would need an extra lookup (currently Slack and Matrix). [isBot] means
+ * "known to be a bot": it stays false on platforms that don't expose bot status (currently
+ * Matrix and Twitch), so false must not be read as "known human".
+ */
 public data class Author(
     public val id: UserId,
     public val displayName: String? = null,
     public val isBot: Boolean = false,
 )
 
+/** Globally unique address of a message: its [channelId] plus its per-channel [messageId]. */
 public data class MessageRef(public val channelId: ChannelId, public val messageId: MessageId)

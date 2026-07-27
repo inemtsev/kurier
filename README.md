@@ -42,9 +42,22 @@ slow work (replies, LLM calls) so one platform's reply never stalls the rest.
 
 ## Status
 
-🚧 **Pre-alpha.** API design phase; nothing published to Maven Central yet (see [Roadmap](#roadmap)). The gateway runtime
-and the in-memory `FakeAdapter` work end-to-end (`./gradlew :samples:echo-bot:run`), and the Telegram, Discord, Matrix,
-Twitch, and Slack adapters are functional. Pre-0.1.0 the public API may change without a deprecation cycle.
+**0.1.0 — first public release**, on Maven Central. The Telegram, Discord, Matrix, Twitch, and Slack adapters are
+functional; the public API surface is locked by a binary-compatibility check, and breaking changes now go through a
+deprecation cycle. Pre-1.0, minor releases still evolve the API — additively.
+
+## Install
+
+```kotlin
+dependencies {
+    implementation("com.eventslooped:kurier-runtime:0.1.0")            // gateway (brings kurier-core transitively)
+    implementation("com.eventslooped:kurier-adapter-telegram:0.1.0")   // one artifact per platform you target
+    testImplementation("com.eventslooped:kurier-testing:0.1.0")        // FakeAdapter, for testing your bot
+}
+```
+
+Adapter artifacts: `kurier-adapter-telegram`, `-discord`, `-matrix`, `-twitch`, `-slack`. Writing your own adapter?
+Add `com.eventslooped:kurier-testing-contract` (test scope) for the shared conformance suite.
 
 ## Supported platforms
 
@@ -272,6 +285,13 @@ bot's posts and reactions back, and forwarding them creates an infinite self-rep
 by the authenticated self id. Channel ids are `<platform>:<native id>` — build with `ChannelId.of`, parse with
 `ChannelId.nativeId`.
 
+Adapter entry points follow one convention (see the five bundled adapters): a plain class with a plain constructor —
+no builders, no config objects. Required credentials come first as `String` parameters, validated eagerly with
+`require(...)` so misconfiguration fails at construction, not at connect; optional platform config follows with
+defaults; and the last parameter is always `id: String = "<platform>"` so multiple instances of one platform can run
+side by side. New parameters are added with defaults *before* the trailing `id` — pass `id` (and same-typed credential
+pairs) by name.
+
 Prove conformance with the shared suite: add `testImplementation("com.eventslooped:kurier-testing-contract:<version>")`,
 subclass `ChannelContract`, and the same invariants that gate the bundled adapters (streaming degradation, the
 `KurierException` error contract, no-op capability fallbacks) run against your adapter.
@@ -292,7 +312,7 @@ subclass `ChannelContract`, and the same invariants that gate the bundled adapte
 | `samples/echo-bot` | Runnable end-to-end demo (no tokens required) | Exempt from library rules |
 
 Published as `com.eventslooped:kurier-core`, `kurier-runtime`, `kurier-adapter-*`, `kurier-testing`,
-`kurier-testing-contract` (coordinates reserved; first publish is 0.1.0 in M4). Code packages live under the bare brand `kurier`: core owns the bare package,
+`kurier-testing-contract`. Code packages live under the bare brand `kurier`: core owns the bare package,
 every other artifact owns `kurier.<module>` (`kurier.runtime`, `kurier.telegram`, …).
 
 ## Testing your bot
@@ -323,7 +343,7 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 - **M2.5** — Matrix adapter (Trixnity, `/sync`) ✔️
 - **M2.9** — Twitch adapter (EventSub + Helix) ✔️
 - **M3** — Slack adapter (Socket Mode) + rich-text rendering matrix + shared SPI contract tests ✔️
-- **M4** — docs + **0.1.0 on Maven Central**
+- **M4** — docs + **0.1.0 on Maven Central** ✔️
 - **M5** — Signal (signal-cli sidecar)
 - **M6** — WhatsApp + LINE (webhook-inbound abstraction + send-window capability)
 

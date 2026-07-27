@@ -2,6 +2,11 @@ package kurier
 
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * A normalized inbound message. Members with default bodies ([reply], [react]) are platform
+ * override points; conveniences with exactly one correct implementation ([text], `reply(String)`)
+ * live as extensions, keeping the surface adapters and fakes must implement minimal.
+ */
 public interface IncomingMessage {
     public val id: MessageId
     public val channel: Channel

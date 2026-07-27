@@ -7,7 +7,7 @@ One typed, coroutine/Flow-based API for bots and agents; per-platform adapters n
 Telegram/Discord/Slack behind it. The flagship feature is **streaming-edit LLM replies**
 (`reply(tokens: Flow<String>)` progressively edits the sent message, throttled per platform).
 
-**Target:** 0.1.0 on Maven Central (see Roadmap). **North star:** kurier later becomes the
+**Status:** 0.1.0 published to Maven Central; next milestone M5 (see Roadmap). **North star:** kurier later becomes the
 channel module of an Android on-phone agent gateway, so Android compatibility is non-negotiable.
 
 **Maven coordinates:** group id `com.eventslooped` (author's domain, Sonatype-verifiable; set in the root build) —
@@ -27,7 +27,15 @@ Do not rename packages post-0.1.0.
 ./gradlew ktlintCheck detekt                     # lint only
 ./gradlew :samples:echo-bot:run                  # interactive end-to-end demo (no tokens needed)
 printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke test
+./gradlew publishToMavenLocal                    # smoke-test the artifacts/POMs into ~/.m2 (no signing needed)
+./gradlew publishToMavenCentral                  # upload to the Central Portal (verify + release manually there)
 ```
+
+**Publishing credentials** (never in the repo; pass as env vars): `ORG_GRADLE_PROJECT_mavenCentralUsername` /
+`ORG_GRADLE_PROJECT_mavenCentralPassword` (a Central Portal token for the verified `com.eventslooped` namespace) and
+`ORG_GRADLE_PROJECT_signingInMemoryKey` / `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword` (ASCII-armored GPG key).
+Signing activates only when the key is present, so local publishes work without a GPG setup; Central rejects
+unsigned uploads. POM metadata and per-module descriptions live in the root `build.gradle.kts`.
 
 ## Module map
 
@@ -68,11 +76,15 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
   changes are re-baselined with `./gradlew apiDump` and the `api/<module>.api` diff reviewed in the PR.
 - `Capability`/`ChannelKind` grow additively in minor releases; `supports()` implementations use `else -> false`,
   never an exhaustive `when`. Any interface member added post-0.1.0 ships with a default implementation.
+- Suspend I/O throws typed `KurierException`; no `Result`/sealed-result return types on the send surface —
+  decided pre-0.1.0, do not re-litigate.
+- Adapter constructors: required `String` credentials first (eagerly `require`d), optional config with defaults next,
+  trailing `id: String = "<platform>"` last. New parameters land with defaults *before* the trailing `id`.
 - Render `RichText` to a platform via its structured/entity API, not generated markup, where one exists — Telegram uses
   the `entities` parameter (text + offset-based spans; no escaping, no formatting-injection surface), **never** MarkdownV2.
   The full rendering matrix + golden tests land in M3.
-- Pre-0.1.0: breaking API changes are fine and expected — improve the design now, it's the cheapest it will ever be.
-  Post-0.1.0: deprecation cycle required.
+- 0.1.0 is published: breaking API changes require a deprecation cycle, and the binary-compatibility
+  validator enforces the frozen surface (`apiDump` re-baselines deliberate changes).
 
 ## Testing conventions
 

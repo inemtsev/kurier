@@ -1,5 +1,7 @@
 # kurier
 
+[![CI](https://github.com/inemtsev/kurier/actions/workflows/ci.yml/badge.svg)](https://github.com/inemtsev/kurier/actions/workflows/ci.yml)
+
 > One API for chat platforms. Kotlin-native, coroutine-first.
 
 **kurier** (German/Polish for *courier*) is a unified channel adapter layer for the JVM — think **JDBC for chat platforms**.

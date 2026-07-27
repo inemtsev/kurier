@@ -44,6 +44,8 @@ import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.MessageId
 import kurier.PlatformId
+import kurier.UserId
+import kurier.nativeId
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.seconds
@@ -207,11 +209,11 @@ internal class SlackConnection(
                 is SlackEventAction.Deleted -> deletedEvent(platform, action.event)?.let { _events.emit(it) }
 
                 is SlackEventAction.ReactionAdded ->
-                    reactionEvent(platform, self.userId, action.event.reactionInfo(), ::ReactionAdded)
+                    reactionEvent(platform, self.userId, action.event.reactionInfo(), ::ReactionAdded, raw = action.event)
                         ?.let { _events.emit(it) }
 
                 is SlackEventAction.ReactionRemoved ->
-                    reactionEvent(platform, self.userId, action.event.reactionInfo(), ::ReactionRemoved)
+                    reactionEvent(platform, self.userId, action.event.reactionInfo(), ::ReactionRemoved, raw = action.event)
                         ?.let { _events.emit(it) }
 
                 SlackEventAction.Ignore -> Unit
@@ -230,7 +232,7 @@ internal class SlackConnection(
     }
 
     override fun channel(id: ChannelId): Channel? {
-        val native = nativeIdOrNull(platform, id) ?: return null
+        val native = id.nativeId(platform) ?: return null
         // Proactive send: kind isn't known without a conversations.info fetch; DM channel ids start with D.
         val kind = if (native.startsWith("D")) ChannelKind.DM else ChannelKind.GROUP
         return SlackChannel(MethodsSlackSender(methods, native), id, platform, kind, name = null)
@@ -280,11 +282,6 @@ internal fun SlackApiException.isRetryable(): Boolean =
 private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val HTTP_SERVER_ERROR = 500
 
-private fun nativeIdOrNull(platform: PlatformId, id: ChannelId): String? {
-    if (id.value.substringBefore(':') != platform.value) return null
-    return id.value.substringAfter(':').takeIf { it.isNotBlank() }
-}
-
 /** The wire fields of a reaction event, decoupled from the SDK's two distinct reaction event classes. */
 internal data class SlackReactionInfo(
     val userId: String?,
@@ -310,15 +307,17 @@ internal fun reactionEvent(
     platform: PlatformId,
     selfUserId: String,
     info: SlackReactionInfo,
-    build: (ChannelId, MessageId, String, Author) -> ChannelEvent,
+    build: (ChannelId, MessageId, String, Author, Any?) -> ChannelEvent,
+    raw: Any? = null,
 ): ChannelEvent? {
     if (info.userId == null || info.userId == selfUserId) return null
     return if (info.channelId != null && info.messageTs != null && info.name != null) {
         build(
-            ChannelId("${platform.value}:${info.channelId}"),
+            ChannelId.of(platform, info.channelId),
             MessageId(info.messageTs),
             slackNameToEmoji(info.name),
-            Author(info.userId),
+            Author(UserId(info.userId)),
+            raw,
         )
     } else {
         null
@@ -330,7 +329,7 @@ internal fun deletedEvent(platform: PlatformId, event: MessageDeletedEvent): Cha
     if (event.channel == null || event.deletedTs == null) {
         null
     } else {
-        MessageDeleted(ChannelId("${platform.value}:${event.channel}"), MessageId(event.deletedTs))
+        MessageDeleted(ChannelId.of(platform, event.channel), MessageId(event.deletedTs), raw = event)
     }
 
 /** A callback from the SDK's own threads, funneled into [SlackConnection]'s single drainer coroutine. */

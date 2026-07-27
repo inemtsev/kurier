@@ -35,16 +35,15 @@ internal class SlackChannel(
         // THREADS is provisional false: a Slack thread is not addressable as a Channel (unlike Discord)
         // and core has no thread-targeted send yet — inbound replyTo still carries the thread ref.
         // The Web API has no typing indicator; Block Kit buttons and file uploads are deferred.
-        Capability.THREADS,
-        Capability.TYPING,
-        Capability.BUTTONS,
-        Capability.FILES,
-        Capability.VOICE,
-        -> false
+        // Capabilities added in later releases are unsupported by default (growth policy).
+        else -> false
     }
 
-    override suspend fun send(content: Content): SentMessage =
-        SlackSentMessage(sender, sender.send(content.toSlack()), id)
+    override suspend fun send(content: Content): SentMessage {
+        // An own-channel reply target becomes the thread_ts; foreign refs degrade to a plain send.
+        val threadTs = content.replyTo?.takeIf { it.channelId == id }?.messageId?.value
+        return SlackSentMessage(sender, sender.send(content.toSlack(), threadTs), id)
+    }
 
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)

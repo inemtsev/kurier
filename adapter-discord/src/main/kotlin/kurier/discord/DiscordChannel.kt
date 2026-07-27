@@ -34,15 +34,16 @@ internal class DiscordChannel(
 
         // Provisional: Discord has attachments (FILES) and message components (BUTTONS), but
         // outbound wiring — and for buttons a core API — lands post-0.1.0. supports() reports
-        // what the adapter does today, not what the platform could.
-        Capability.FILES,
-        Capability.BUTTONS,
-        Capability.VOICE,
-        -> false
+        // what the adapter does today, not what the platform could; VOICE and capabilities added
+        // in later releases are unsupported by default (growth policy on Capability).
+        else -> false
     }
 
-    override suspend fun send(content: Content): SentMessage =
-        DiscordSentMessage(sender, sender.send(content.toDiscord()), id)
+    override suspend fun send(content: Content): SentMessage {
+        // An own-channel reply target becomes a message reference; foreign refs degrade to a plain send.
+        val replyToId = content.replyTo?.takeIf { it.channelId == id }?.messageId
+        return DiscordSentMessage(sender, sender.send(content.toDiscord(), replyToId), id)
+    }
 
     override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
         sendStreamingByEditing(tokens, options, MIN_EDIT_INTERVAL)

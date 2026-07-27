@@ -19,6 +19,7 @@ public object RenderingSamples {
         Sample("bold", Content.rich { bold("bold") }),
         Sample("italic", Content.rich { italic("italic") }),
         Sample("boldInItalic", Content.rich { italic { bold("x") } }),
+        Sample("strikethrough", Content.rich { strikethrough("gone") }),
         Sample("inlineCode", Content.rich { code("code") }),
         Sample("codeWithSpecials", Content.rich { code("a`b < c & d") }),
         Sample("codeBacktick", Content.rich { code("a`") }),

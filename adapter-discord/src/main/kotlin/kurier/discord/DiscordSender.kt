@@ -17,7 +17,8 @@ import java.io.IOException
  * fake — the real implementation ([KordDiscordSender]) is the only Kord-touching part.
  */
 internal interface DiscordSender {
-    suspend fun send(text: String): MessageId
+    /** [replyToId] links the new message as a reply (message reference) where set. */
+    suspend fun send(text: String, replyToId: MessageId? = null): MessageId
     suspend fun edit(messageId: MessageId, text: String)
     suspend fun delete(messageId: MessageId)
     suspend fun typing()
@@ -29,8 +30,18 @@ internal class KordDiscordSender(
     private val channelId: Snowflake,
 ) : DiscordSender {
 
-    override suspend fun send(text: String): MessageId =
-        call("createMessage") { MessageId(MessageChannelBehavior(channelId, kord).createMessage { content = text }.id.toString()) }
+    override suspend fun send(text: String, replyToId: MessageId?): MessageId =
+        call("createMessage") {
+            MessageId(
+                MessageChannelBehavior(channelId, kord).createMessage {
+                    content = text
+                    replyToId?.value?.toULongOrNull()?.let {
+                        messageReference = Snowflake(it)
+                        failIfNotExists = false // degrade to a plain send if the replied-to message vanished
+                    }
+                }.id.toString(),
+            )
+        }
 
     override suspend fun edit(messageId: MessageId, text: String) {
         call("editMessage") { MessageBehavior(channelId, Snowflake(messageId.value), kord).edit { content = text } }

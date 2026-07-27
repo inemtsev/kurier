@@ -10,6 +10,8 @@ import kurier.PlatformId
  * rather than wrapping Twitch4J — Twitch's chat surface is small enough to talk to its official API
  * directly, keeping the adapter thin and Android-safe (Twitch4J pulls Hystrix/Jackson/java.time).
  *
+ * `isDirectedAtBot` detects structured @-mentions only; reply-to-bot detection is a later refinement.
+ *
  * @param clientId The application's client id (registered at dev.twitch.tv).
  * @param accessToken A user OAuth token with `user:read:chat` + `user:write:chat` scopes.
  * @param channel The broadcaster login whose chat the bot reads and posts in.

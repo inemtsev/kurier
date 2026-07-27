@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -8,6 +9,9 @@ kotlin {
     explicitApi()
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
+        // Explicit: interface default methods compile as JVM default methods (with DefaultImpls compat
+        // bridges), so SPI interfaces can gain members without breaking compiled implementors.
+        jvmDefault.set(JvmDefaultMode.ENABLE)
     }
 }
 

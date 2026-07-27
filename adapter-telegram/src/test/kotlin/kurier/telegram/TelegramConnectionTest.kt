@@ -8,17 +8,39 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kurier.ChannelId
+import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.PlatformId
 import kurier.text
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 class TelegramConnectionTest {
 
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
     private val meOk = """{"ok":true,"result":{"id":42,"is_bot":true,"first_name":"Echo","username":"echobot"}}"""
+
+    @Test
+    fun `channel mints a sender for any well-formed own-platform id`() = runTest {
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("/getMe")) {
+                respond(meOk, HttpStatusCode.OK, jsonHeaders)
+            } else {
+                awaitCancellation() // park the poll loop
+            }
+        }
+        val connection = TelegramConnection(TelegramApi("test", engine), PlatformId("telegram"), backgroundScope)
+
+        assertEquals(ChannelKind.DM, connection.channel(ChannelId("telegram:42"))?.kind)
+        assertEquals(ChannelKind.GROUP, connection.channel(ChannelId("telegram:-100"))?.kind)
+        assertNull(connection.channel(ChannelId("discord:42")), "a foreign platform prefix resolves to null")
+        assertNull(connection.channel(ChannelId("telegram:abc")), "an unparseable native id resolves to null")
+
+        connection.close()
+    }
 
     @Test
     fun `handshakes, reports Connected, and emits a normalized message`() = runTest {

@@ -1,0 +1,24 @@
+public final class kurier/testing/FakeAdapter : kurier/ChannelAdapter {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun channel (Ljava/lang/String;Lkurier/ChannelKind;)Lkurier/testing/FakeChannel;
+	public static synthetic fun channel$default (Lkurier/testing/FakeAdapter;Ljava/lang/String;Lkurier/ChannelKind;ILjava/lang/Object;)Lkurier/testing/FakeChannel;
+	public fun connect (Lkotlinx/coroutines/CoroutineScope;)Lkurier/AdapterConnection;
+	public fun getPlatform-bMlWbZ4 ()Ljava/lang/String;
+	public final fun getSent ()Ljava/util/List;
+	public final fun receive (Ljava/lang/String;Lkurier/testing/FakeChannel;Lkurier/Author;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun receive$default (Lkurier/testing/FakeAdapter;Ljava/lang/String;Lkurier/testing/FakeChannel;Lkurier/Author;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class kurier/testing/FakeChannel : kurier/Channel {
+	public fun getId-kCZpfwU ()Ljava/lang/String;
+	public fun getKind ()Lkurier/ChannelKind;
+	public fun getName ()Ljava/lang/String;
+	public fun getPlatform-bMlWbZ4 ()Ljava/lang/String;
+	public fun indicateTyping (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun send (Lkurier/Content;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun sendStreaming (Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun supports (Lkurier/Capability;)Z
+}
+

@@ -21,6 +21,7 @@ import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
+import kurier.nativeId
 import net.folivo.trixnity.clientserverapi.client.MatrixAuthProvider
 import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClientImpl
 import net.folivo.trixnity.clientserverapi.client.SyncState
@@ -107,9 +108,6 @@ internal fun SyncState.toConnectionState(): ConnectionState = when (this) {
 }
 
 /** Parses a kurier [ChannelId] (`"<platform>:<roomId>"`) back to a Matrix [RoomId]; null if the prefix mismatches. */
-internal fun roomIdOf(channelId: ChannelId, platform: PlatformId): RoomId? {
-    if (channelId.value.substringBefore(':') != platform.value) return null
-    return RoomId(channelId.value.substringAfter(':'))
-}
+internal fun roomIdOf(channelId: ChannelId, platform: PlatformId): RoomId? = channelId.nativeId(platform)?.let { RoomId(it) }
 
 private val SYNC_RETRY_HINT = 5.seconds

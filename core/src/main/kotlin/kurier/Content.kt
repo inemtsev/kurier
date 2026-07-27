@@ -1,7 +1,9 @@
 package kurier
 
 /**
- * A file attached to a message.
+ * A file attached to an **inbound** message — the received-file record on [IncomingMessage.attachments].
+ * Outbound file upload ships post-0.1.0 as a distinct type (with a byte/stream source), not by reusing
+ * this shape.
  *
  * Deliberately not a data class: its fields will grow (sizes, captions, spoiler flags), and a data
  * class's `copy`/`componentN` would turn every added field into a binary break. Follows [Content]'s
@@ -37,7 +39,6 @@ public class Attachment(
  */
 public class Content(
     public val rich: RichText,
-    public val attachments: List<Attachment> = emptyList(),
     /**
      * The message this content replies to, where the platform can express it (Telegram
      * `reply_to_message_id`, Slack `thread_ts`, Discord message references, Matrix
@@ -49,11 +50,11 @@ public class Content(
     public val text: String get() = rich.toPlainText()
 
     override fun equals(other: Any?): Boolean =
-        other is Content && rich == other.rich && attachments == other.attachments && replyTo == other.replyTo
+        other is Content && rich == other.rich && replyTo == other.replyTo
 
-    override fun hashCode(): Int = listOf(rich, attachments, replyTo).hashCode()
+    override fun hashCode(): Int = listOf(rich, replyTo).hashCode()
 
-    override fun toString(): String = "Content(rich=$rich, attachments=$attachments, replyTo=$replyTo)"
+    override fun toString(): String = "Content(rich=$rich, replyTo=$replyTo)"
 
     public companion object {
         public fun text(value: String): Content = Content(RichText.plain(value))
@@ -62,3 +63,6 @@ public class Content(
         public fun rich(block: RichTextBuilder.() -> Unit): Content = Content(richText(block))
     }
 }
+
+/** This content with [replyTo] set — reconstruction, since [Content] deliberately has no `copy`. */
+public fun Content.withReplyTo(replyTo: MessageRef?): Content = Content(rich, replyTo)

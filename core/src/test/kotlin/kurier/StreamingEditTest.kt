@@ -1,11 +1,17 @@
 package kurier
 
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 class StreamingEditTest {
@@ -26,6 +32,10 @@ class StreamingEditTest {
 
         override suspend fun sendStreaming(tokens: Flow<String>, options: StreamingOptions): SentMessage =
             sendStreamingByEditing(tokens, options, 1.seconds)
+
+        override suspend fun indicateTyping() {
+            calls += "typing"
+        }
     }
 
     private class RecordingSentMessage(
@@ -70,5 +80,56 @@ class StreamingEditTest {
 
         assertEquals(listOf("send:Hello"), channel.calls)
         assertTrue(channel.calls.none { it.contains("▌") })
+    }
+
+    @Test
+    fun `a failing token flow finalizes the partial message and rethrows the original`() = runTest {
+        val channel = RecordingChannel(editing = true)
+        val tokens = flow {
+            emit("Hel")
+            delay(10.seconds)
+            emit("lo")
+            error("stream died")
+        }
+
+        val failure = assertFailsWith<IllegalStateException> {
+            channel.sendStreamingByEditing(tokens, StreamingOptions(cursor = "▌"), minEditInterval = 1.seconds)
+        }
+
+        assertEquals("stream died", failure.message, "the original exception surfaces unwrapped")
+        assertEquals("edit:Hello", channel.calls.last(), "the text received so far lands, cursor stripped")
+    }
+
+    @Test
+    fun `cancelling mid-stream finalizes the partial message`() = runTest {
+        val channel = RecordingChannel(editing = true)
+        val tokens = flow {
+            emit("Hel")
+            delay(1.hours) // a stalled token source
+        }
+        val streaming = launch {
+            channel.sendStreamingByEditing(tokens, StreamingOptions(cursor = "▌"), minEditInterval = 1.seconds)
+        }
+
+        delay(5.seconds) // let the first send land
+        streaming.cancelAndJoin()
+
+        assertEquals("send:Hel▌", channel.calls.first())
+        assertEquals("edit:Hel", channel.calls.last(), "cancellation must not leave a frozen cursor")
+    }
+
+    @Test
+    fun `BUFFERED keeps a typing indicator alive while draining`() = runTest {
+        val channel = RecordingChannel(editing = false) // no EDITING forces the buffered path
+        val tokens = flow {
+            emit("Hel")
+            delay(10.seconds) // a slow generation
+            emit("lo")
+        }
+
+        channel.sendStreamingByEditing(tokens, StreamingOptions(), minEditInterval = 1.seconds)
+
+        assertTrue(channel.calls.count { it == "typing" } >= 2, "keepalive should re-trigger during a 10s drain")
+        assertEquals("send:Hello", channel.calls.last())
     }
 }

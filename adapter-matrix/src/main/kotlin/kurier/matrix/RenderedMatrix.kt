@@ -46,6 +46,7 @@ private fun RichNode.renderHtml(out: StringBuilder) {
         is RichNode.Text -> out.append(escapeHtml(value))
         is RichNode.Bold -> out.wrapNonEmpty("strong", children)
         is RichNode.Italic -> out.wrapNonEmpty("em", children)
+        is RichNode.Strikethrough -> out.wrapNonEmpty("del", children)
         is RichNode.Code -> if (value.isNotEmpty()) out.wrap("code") { out.append(escapeHtml(value)) }
         is RichNode.CodeBlock -> if (code.isNotEmpty()) {
             out.append("<pre><code")

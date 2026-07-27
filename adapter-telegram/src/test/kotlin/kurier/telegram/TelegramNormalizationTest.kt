@@ -41,7 +41,7 @@ class TelegramNormalizationTest {
         assertEquals(ChannelId("telegram:-100"), incoming.channel.id)
         assertEquals(ChannelKind.DM, incoming.channel.kind)
         assertTrue(incoming.isDirectedAtBot)
-        assertEquals("111", incoming.author.id)
+        assertEquals("111", incoming.author.id.value)
         assertEquals("Ada", incoming.author.displayName)
         assertFalse(incoming.author.isBot)
         assertSame(message, incoming.raw)
@@ -87,7 +87,7 @@ class TelegramNormalizationTest {
 
         val incoming = message.toIncomingMessage(platform, api, bot)
 
-        assertEquals("unknown", incoming.author.id)
+        assertEquals("unknown", incoming.author.id.value)
         assertEquals(ChannelKind.BROADCAST, incoming.channel.kind)
     }
 
@@ -263,7 +263,7 @@ class TelegramNormalizationTest {
 
         val author = message.toIncomingMessage(platform, api, bot).author
 
-        assertEquals("-100", author.id)
+        assertEquals("-100", author.id.value)
         assertEquals("News", author.displayName)
     }
 

@@ -15,10 +15,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kurier.AdapterConnection
+import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelId
+import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
+import kurier.nativeId
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -52,6 +56,10 @@ internal class TwitchConnection(
     // The receive deadline for the next frame; widened to the session's window once `session_welcome` lands.
     private var keepalive: Duration = DEFAULT_KEEPALIVE + KEEPALIVE_MARGIN
 
+    // Broadcaster id to bot user id, set once run() resolves them — channel() needs both.
+    @Volatile
+    private var resolved: Pair<String, String>? = null
+
     private val job: Job = scope.launch { run() }
 
     @Suppress("TooGenericExceptionCaught") // startup/socket failures must surface as state, not crash the scope
@@ -65,6 +73,7 @@ internal class TwitchConnection(
             return
         }
         val broadcaster = resolveBroadcaster() ?: return
+        resolved = broadcaster.id to bot.userId
 
         while (coroutineContext.isActive) {
             var cause: Throwable? = null
@@ -130,6 +139,19 @@ internal class TwitchConnection(
 
     /** Reconnect if no keepalive or notification lands within the session's window plus slack for jitter. */
     private fun keepaliveTimeout(seconds: Int?): Duration = (seconds?.seconds ?: DEFAULT_KEEPALIVE) + KEEPALIVE_MARGIN
+
+    override fun channel(id: ChannelId): Channel? {
+        val (broadcasterId, senderId) = resolved ?: return null
+        return id.nativeId(platform)?.takeIf { it == broadcasterId }?.let {
+            TwitchChannel(
+                outbound = TwitchOutbound(api = api, broadcasterId = broadcasterId, senderId = senderId),
+                id = id,
+                platform = platform,
+                kind = ChannelKind.BROADCAST,
+                name = null,
+            )
+        }
+    }
 
     override suspend fun close() {
         job.cancelAndJoin()

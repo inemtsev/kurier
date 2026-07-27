@@ -11,6 +11,9 @@ import kurier.PlatformId
  * access token (the bot pattern); end-to-end-encrypted rooms are out of scope (their messages don't
  * surface) until a future slice adopts Trixnity's high-level crypto client.
  *
+ * `isDirectedAtBot` is an mxid-substring heuristic for now: DM rooms are NOT detected (m.direct),
+ * and a quoted mxid can false-positive — structured m.mentions parsing is a later refinement.
+ *
  * @param homeserver Base URL of the bot's homeserver, e.g. `https://matrix.org`.
  * @param id Platform id for this instance; must be unique within a gateway.
  */

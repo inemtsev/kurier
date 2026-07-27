@@ -1,0 +1,514 @@
+public abstract interface class kurier/AdapterConnection {
+	public abstract fun channel-EZ5aQ-E (Ljava/lang/String;)Lkurier/Channel;
+	public abstract fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getEvents ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getMessages ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getState ()Lkotlinx/coroutines/flow/StateFlow;
+}
+
+public final class kurier/Attachment {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContentType ()Ljava/lang/String;
+	public final fun getFileName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getUrl ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/Author {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-tFdd2PY ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun copy-uwJuMpw (Ljava/lang/String;Ljava/lang/String;Z)Lkurier/Author;
+	public static synthetic fun copy-uwJuMpw$default (Lkurier/Author;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lkurier/Author;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId-tFdd2PY ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun isBot ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/Capability : java/lang/Enum {
+	public static final field BUTTONS Lkurier/Capability;
+	public static final field EDITING Lkurier/Capability;
+	public static final field FILES Lkurier/Capability;
+	public static final field REACTIONS Lkurier/Capability;
+	public static final field THREADS Lkurier/Capability;
+	public static final field TYPING Lkurier/Capability;
+	public static final field VOICE Lkurier/Capability;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lkurier/Capability;
+	public static fun values ()[Lkurier/Capability;
+}
+
+public abstract interface class kurier/Channel {
+	public abstract fun getId-kCZpfwU ()Ljava/lang/String;
+	public abstract fun getKind ()Lkurier/ChannelKind;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getPlatform-bMlWbZ4 ()Ljava/lang/String;
+	public fun indicateTyping (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun send (Lkurier/Content;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun sendStreaming (Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sendStreaming$default (Lkurier/Channel;Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun supports (Lkurier/Capability;)Z
+}
+
+public final class kurier/Channel$DefaultImpls {
+	public static fun indicateTyping (Lkurier/Channel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sendStreaming$default (Lkurier/Channel;Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public abstract interface class kurier/ChannelAdapter {
+	public abstract fun connect (Lkotlinx/coroutines/CoroutineScope;)Lkurier/AdapterConnection;
+	public abstract fun getPlatform-bMlWbZ4 ()Ljava/lang/String;
+}
+
+public abstract interface class kurier/ChannelEvent {
+	public abstract fun getChannelId-kCZpfwU ()Ljava/lang/String;
+	public fun getRaw ()Ljava/lang/Object;
+}
+
+public final class kurier/ChannelEvent$DefaultImpls {
+	public static fun getRaw (Lkurier/ChannelEvent;)Ljava/lang/Object;
+}
+
+public final class kurier/ChannelEvent$MessageDeleted : kurier/ChannelEvent {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-kCZpfwU ()Ljava/lang/String;
+	public final fun component2-rk1jJdo ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/Object;
+	public final fun copy-Z1hVTds (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)Lkurier/ChannelEvent$MessageDeleted;
+	public static synthetic fun copy-Z1hVTds$default (Lkurier/ChannelEvent$MessageDeleted;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;)Lkurier/ChannelEvent$MessageDeleted;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getChannelId-kCZpfwU ()Ljava/lang/String;
+	public final fun getMessageId-rk1jJdo ()Ljava/lang/String;
+	public fun getRaw ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ChannelEvent$ReactionAdded : kurier/ChannelEvent {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-kCZpfwU ()Ljava/lang/String;
+	public final fun component2-rk1jJdo ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lkurier/Author;
+	public final fun component5 ()Ljava/lang/Object;
+	public final fun copy-csvy4NY (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;)Lkurier/ChannelEvent$ReactionAdded;
+	public static synthetic fun copy-csvy4NY$default (Lkurier/ChannelEvent$ReactionAdded;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;ILjava/lang/Object;)Lkurier/ChannelEvent$ReactionAdded;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAuthor ()Lkurier/Author;
+	public fun getChannelId-kCZpfwU ()Ljava/lang/String;
+	public final fun getEmoji ()Ljava/lang/String;
+	public final fun getMessageId-rk1jJdo ()Ljava/lang/String;
+	public fun getRaw ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ChannelEvent$ReactionRemoved : kurier/ChannelEvent {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-kCZpfwU ()Ljava/lang/String;
+	public final fun component2-rk1jJdo ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lkurier/Author;
+	public final fun component5 ()Ljava/lang/Object;
+	public final fun copy-csvy4NY (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;)Lkurier/ChannelEvent$ReactionRemoved;
+	public static synthetic fun copy-csvy4NY$default (Lkurier/ChannelEvent$ReactionRemoved;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkurier/Author;Ljava/lang/Object;ILjava/lang/Object;)Lkurier/ChannelEvent$ReactionRemoved;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAuthor ()Lkurier/Author;
+	public fun getChannelId-kCZpfwU ()Ljava/lang/String;
+	public final fun getEmoji ()Ljava/lang/String;
+	public final fun getMessageId-rk1jJdo ()Ljava/lang/String;
+	public fun getRaw ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ChannelId {
+	public static final field Companion Lkurier/ChannelId$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lkurier/ChannelId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class kurier/ChannelId$Companion {
+	public final fun of-19wZ1DY (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class kurier/ChannelKind : java/lang/Enum {
+	public static final field BROADCAST Lkurier/ChannelKind;
+	public static final field DM Lkurier/ChannelKind;
+	public static final field GROUP Lkurier/ChannelKind;
+	public static final field THREAD Lkurier/ChannelKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lkurier/ChannelKind;
+	public static fun values ()[Lkurier/ChannelKind;
+}
+
+public final class kurier/ChannelKt {
+	public static final fun send (Lkurier/Channel;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun withReplyTo (Lkurier/StreamingOptions;Lkurier/MessageRef;)Lkurier/StreamingOptions;
+}
+
+public abstract interface class kurier/ChatGateway {
+	public abstract fun channel-EZ5aQ-E (Ljava/lang/String;)Lkurier/Channel;
+	public abstract fun getConnections ()Lkotlinx/coroutines/flow/StateFlow;
+	public abstract fun getEvents ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getMessages ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun start (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun stop (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class kurier/ConnectionState {
+}
+
+public final class kurier/ConnectionState$Backoff : kurier/ConnectionState {
+	public synthetic fun <init> (JLjava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (JLjava/lang/Throwable;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-UwyO8pc ()J
+	public final fun component2 ()Ljava/lang/Throwable;
+	public final fun copy-VtjQ1oo (JLjava/lang/Throwable;)Lkurier/ConnectionState$Backoff;
+	public static synthetic fun copy-VtjQ1oo$default (Lkurier/ConnectionState$Backoff;JLjava/lang/Throwable;ILjava/lang/Object;)Lkurier/ConnectionState$Backoff;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/Throwable;
+	public final fun getRetryIn-UwyO8pc ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ConnectionState$Closed : kurier/ConnectionState {
+	public static final field INSTANCE Lkurier/ConnectionState$Closed;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ConnectionState$Connected : kurier/ConnectionState {
+	public static final field INSTANCE Lkurier/ConnectionState$Connected;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ConnectionState$Connecting : kurier/ConnectionState {
+	public static final field INSTANCE Lkurier/ConnectionState$Connecting;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/ConnectionState$Failed : kurier/ConnectionState {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Throwable;
+	public final fun copy (Ljava/lang/Throwable;)Lkurier/ConnectionState$Failed;
+	public static synthetic fun copy$default (Lkurier/ConnectionState$Failed;Ljava/lang/Throwable;ILjava/lang/Object;)Lkurier/ConnectionState$Failed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/Throwable;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/Content {
+	public static final field Companion Lkurier/Content$Companion;
+	public fun <init> (Lkurier/RichText;Lkurier/MessageRef;)V
+	public synthetic fun <init> (Lkurier/RichText;Lkurier/MessageRef;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReplyTo ()Lkurier/MessageRef;
+	public final fun getRich ()Lkurier/RichText;
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/Content$Companion {
+	public final fun rich (Lkotlin/jvm/functions/Function1;)Lkurier/Content;
+	public final fun text (Ljava/lang/String;)Lkurier/Content;
+}
+
+public final class kurier/ContentKt {
+	public static final fun withReplyTo (Lkurier/Content;Lkurier/MessageRef;)Lkurier/Content;
+}
+
+public final class kurier/IdsKt {
+	public static final fun nativeId-Hlriil4 (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public abstract interface class kurier/IncomingMessage {
+	public abstract fun getAttachments ()Ljava/util/List;
+	public abstract fun getAuthor ()Lkurier/Author;
+	public abstract fun getChannel ()Lkurier/Channel;
+	public abstract fun getId-rk1jJdo ()Ljava/lang/String;
+	public abstract fun getRaw ()Ljava/lang/Object;
+	public abstract fun getReplyTo ()Lkurier/MessageRef;
+	public abstract fun getRich ()Lkurier/RichText;
+	public abstract fun isDirectedAtBot ()Z
+	public fun react (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun reply (Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun reply (Lkurier/Content;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun reply$default (Lkurier/IncomingMessage;Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class kurier/IncomingMessage$DefaultImpls {
+	public static fun react (Lkurier/IncomingMessage;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun reply (Lkurier/IncomingMessage;Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun reply (Lkurier/IncomingMessage;Lkurier/Content;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun reply$default (Lkurier/IncomingMessage;Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class kurier/IncomingMessageKt {
+	public static final fun getText (Lkurier/IncomingMessage;)Ljava/lang/String;
+	public static final fun reply (Lkurier/IncomingMessage;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public class kurier/KurierException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getRetryable ()Z
+}
+
+public final class kurier/MessageId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lkurier/MessageId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class kurier/MessageRef {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-kCZpfwU ()Ljava/lang/String;
+	public final fun component2-rk1jJdo ()Ljava/lang/String;
+	public final fun copy-RIGJ0aA (Ljava/lang/String;Ljava/lang/String;)Lkurier/MessageRef;
+	public static synthetic fun copy-RIGJ0aA$default (Lkurier/MessageRef;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lkurier/MessageRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChannelId-kCZpfwU ()Ljava/lang/String;
+	public final fun getMessageId-rk1jJdo ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/PlatformId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lkurier/PlatformId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract interface class kurier/RichNode {
+	public fun toPlainText ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$Bold : kurier/RichNode {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lkurier/RichNode$Bold;
+	public static synthetic fun copy$default (Lkurier/RichNode$Bold;Ljava/util/List;ILjava/lang/Object;)Lkurier/RichNode$Bold;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChildren ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$Code : kurier/RichNode {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lkurier/RichNode$Code;
+	public static synthetic fun copy$default (Lkurier/RichNode$Code;Ljava/lang/String;ILjava/lang/Object;)Lkurier/RichNode$Code;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$CodeBlock : kurier/RichNode {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lkurier/RichNode$CodeBlock;
+	public static synthetic fun copy$default (Lkurier/RichNode$CodeBlock;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lkurier/RichNode$CodeBlock;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getLanguage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$DefaultImpls {
+	public static fun toPlainText (Lkurier/RichNode;)Ljava/lang/String;
+}
+
+public final class kurier/RichNode$Italic : kurier/RichNode {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lkurier/RichNode$Italic;
+	public static synthetic fun copy$default (Lkurier/RichNode$Italic;Ljava/util/List;ILjava/lang/Object;)Lkurier/RichNode$Italic;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChildren ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$Link : kurier/RichNode {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lkurier/RichNode$Link;
+	public static synthetic fun copy$default (Lkurier/RichNode$Link;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lkurier/RichNode$Link;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getUrl ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$Strikethrough : kurier/RichNode {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lkurier/RichNode$Strikethrough;
+	public static synthetic fun copy$default (Lkurier/RichNode$Strikethrough;Ljava/util/List;ILjava/lang/Object;)Lkurier/RichNode$Strikethrough;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChildren ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichNode$Text : kurier/RichNode {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lkurier/RichNode$Text;
+	public static synthetic fun copy$default (Lkurier/RichNode$Text;Ljava/lang/String;ILjava/lang/Object;)Lkurier/RichNode$Text;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichText {
+	public static final field Companion Lkurier/RichText$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lkurier/RichText;
+	public static synthetic fun copy$default (Lkurier/RichText;Ljava/util/List;ILjava/lang/Object;)Lkurier/RichText;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodes ()Ljava/util/List;
+	public fun hashCode ()I
+	public final fun toPlainText ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kurier/RichText$Companion {
+	public final fun plain (Ljava/lang/String;)Lkurier/RichText;
+}
+
+public final class kurier/RichTextBuilder {
+	public final fun bold (Ljava/lang/String;)V
+	public final fun bold (Lkotlin/jvm/functions/Function1;)V
+	public final fun code (Ljava/lang/String;)V
+	public final fun codeBlock (Ljava/lang/String;Ljava/lang/String;)V
+	public static synthetic fun codeBlock$default (Lkurier/RichTextBuilder;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun italic (Ljava/lang/String;)V
+	public final fun italic (Lkotlin/jvm/functions/Function1;)V
+	public final fun link (Ljava/lang/String;Ljava/lang/String;)V
+	public static synthetic fun link$default (Lkurier/RichTextBuilder;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun strikethrough (Ljava/lang/String;)V
+	public final fun strikethrough (Lkotlin/jvm/functions/Function1;)V
+	public final fun text (Ljava/lang/String;)V
+}
+
+public final class kurier/RichTextBuilderKt {
+	public static final fun richText (Lkotlin/jvm/functions/Function1;)Lkurier/RichText;
+}
+
+public abstract interface annotation class kurier/RichTextDsl : java/lang/annotation/Annotation {
+}
+
+public abstract interface class kurier/SentMessage {
+	public abstract fun delete (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun edit (Lkurier/Content;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getChannelId-kCZpfwU ()Ljava/lang/String;
+	public abstract fun getId-rk1jJdo ()Ljava/lang/String;
+}
+
+public final class kurier/StreamingEditKt {
+	public static final fun sendStreamingByEditing-zkXUZaI (Lkurier/Channel;Lkotlinx/coroutines/flow/Flow;Lkurier/StreamingOptions;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class kurier/StreamingMode : java/lang/Enum {
+	public static final field BUFFERED Lkurier/StreamingMode;
+	public static final field EDIT Lkurier/StreamingMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lkurier/StreamingMode;
+	public static fun values ()[Lkurier/StreamingMode;
+}
+
+public final class kurier/StreamingOptions {
+	public static final field Companion Lkurier/StreamingOptions$Companion;
+	public synthetic fun <init> (Lkurier/StreamingMode;JLjava/lang/String;Lkurier/MessageRef;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lkurier/StreamingMode;JLjava/lang/String;Lkurier/MessageRef;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCursor ()Ljava/lang/String;
+	public final fun getMinEditInterval-UwyO8pc ()J
+	public final fun getMode ()Lkurier/StreamingMode;
+	public final fun getReplyTo ()Lkurier/MessageRef;
+}
+
+public final class kurier/StreamingOptions$Companion {
+	public final fun getDefault ()Lkurier/StreamingOptions;
+}
+
+public final class kurier/UserId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lkurier/UserId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+

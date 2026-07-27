@@ -89,7 +89,7 @@ class SlackNormalizationTest {
         assertEquals(MessageId("1700000000.000100"), message.id)
         assertEquals(ChannelId("slack:C123"), message.channel.id)
         assertEquals(ChannelKind.GROUP, message.channel.kind)
-        assertEquals("U200", message.author.id)
+        assertEquals("U200", message.author.id.value)
         assertFalse(message.author.isBot)
         assertEquals("hi there", message.text)
         assertEquals(MessageRef(ChannelId("slack:C123"), MessageId("1700000000.000001")), message.replyTo)

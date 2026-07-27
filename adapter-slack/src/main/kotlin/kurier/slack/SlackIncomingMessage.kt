@@ -2,16 +2,22 @@ package kurier.slack
 
 import com.slack.api.methods.MethodsClient
 import com.slack.api.model.event.MessageEvent
+import kotlinx.coroutines.flow.Flow
 import kurier.Attachment
 import kurier.Author
 import kurier.Channel
 import kurier.ChannelId
 import kurier.ChannelKind
+import kurier.Content
 import kurier.IncomingMessage
 import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
+import kurier.SentMessage
+import kurier.StreamingOptions
+import kurier.UserId
+import kurier.withReplyTo
 
 /**
  * Wraps a Slack `message` event as a kurier [IncomingMessage]. The SDK event stays on [raw] as the
@@ -25,7 +31,7 @@ internal class SlackIncomingMessage(
     override val isDirectedAtBot: Boolean,
 ) : IncomingMessage {
     override val id: MessageId = MessageId(event.ts)
-    override val author: Author = Author(id = event.user ?: event.botId ?: "unknown", isBot = event.botId != null)
+    override val author: Author = Author(id = UserId(event.user ?: event.botId ?: "unknown"), isBot = event.botId != null)
     override val rich: RichText = RichText.plain(event.text.orEmpty())
     override val attachments: List<Attachment> = event.files.orEmpty().map {
         Attachment(fileName = it.name, contentType = it.mimetype, url = it.urlPrivate, id = it.id)
@@ -36,12 +42,25 @@ internal class SlackIncomingMessage(
     override suspend fun react(emoji: String) {
         (channel as? SlackChannel)?.react(id, emoji)
     }
+
+    /**
+     * Slack threads by root ts: replying to a threaded message must target its thread root
+     * ([replyTo], which inbound mapping fills from `thread_ts`) — targeting the message itself
+     * would fork a nested thread. A top-level message is its own root.
+     */
+    override suspend fun reply(content: Content): SentMessage =
+        channel.send(if (content.replyTo != null) content else content.withReplyTo(threadRef()))
+
+    override suspend fun reply(tokens: Flow<String>, options: StreamingOptions): SentMessage =
+        channel.sendStreaming(tokens, if (options.replyTo != null) options else options.withReplyTo(threadRef()))
+
+    private fun threadRef(): MessageRef = replyTo ?: MessageRef(channel.id, id)
 }
 
 internal fun MessageEvent.toIncomingMessage(methods: MethodsClient, platform: PlatformId, botUserId: String): IncomingMessage {
     val slackChannel = SlackChannel(
         sender = MethodsSlackSender(methods, channel),
-        id = ChannelId("${platform.value}:$channel"),
+        id = ChannelId.of(platform, channel),
         platform = platform,
         kind = channelKind(channelType),
         name = null,

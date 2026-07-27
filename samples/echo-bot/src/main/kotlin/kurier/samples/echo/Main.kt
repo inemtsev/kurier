@@ -83,7 +83,7 @@ private suspend fun CoroutineScope.liveEcho(adapters: List<ChannelAdapter>) {
 
     println("kurier echo-bot — message your bot; Ctrl+C to stop")
     gateway.messages.collect { message ->
-        val who = message.author.displayName ?: message.author.id
+        val who = message.author.displayName ?: message.author.id.value
         println("[kurier] in  <${message.channel.platform}:$who> directed=${message.isDirectedAtBot}: ${message.text}")
         if (message.isDirectedAtBot) {
             message.reply("echo: ${message.text}")

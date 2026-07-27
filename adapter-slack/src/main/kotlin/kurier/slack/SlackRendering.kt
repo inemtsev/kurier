@@ -20,6 +20,7 @@ private fun RichNode.render(out: StringBuilder) {
         is RichNode.Text -> out.append(escapeMrkdwn(value))
         is RichNode.Bold -> out.wrapNonEmpty("*", children)
         is RichNode.Italic -> out.wrapNonEmpty("_", children)
+        is RichNode.Strikethrough -> out.wrapNonEmpty("~", children)
         is RichNode.Code -> if (value.isNotEmpty()) out.append(renderInlineCode(value))
         is RichNode.CodeBlock -> if (code.isNotEmpty()) {
             // mrkdwn fences carry no language tag; the language is dropped.

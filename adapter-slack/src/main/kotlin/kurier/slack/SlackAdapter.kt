@@ -14,6 +14,9 @@ import kurier.PlatformId
  * token (`xapp-…`, with the `connections:write` scope) opens the Socket Mode connection. App
  * configuration (Socket Mode, scopes, event subscriptions) is walked through in `docs/slack-setup.md`.
  *
+ * `isDirectedAtBot` counts DMs, @-mentions, and every message in a thread rooted at one of the
+ * bot's messages — not only direct replies to the bot.
+ *
  * Android note: the SDK deserializes with gson (reflection), so R8/ProGuard builds need keep rules
  * for `com.slack.api.**` model classes.
  *

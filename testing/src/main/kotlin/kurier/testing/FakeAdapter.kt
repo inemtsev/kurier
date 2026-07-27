@@ -26,6 +26,8 @@ import kurier.PlatformId
 import kurier.RichText
 import kurier.SentMessage
 import kurier.StreamingOptions
+import kurier.UserId
+import kurier.nativeId
 
 /**
  * In-memory [ChannelAdapter] for unit-testing bots and agents — no network,
@@ -44,14 +46,19 @@ public class FakeAdapter(
     private val channels = LinkedHashMap<ChannelId, FakeChannel>()
     private var counter = 0
 
-    /** Everything sent through any channel of this adapter, in order. */
-    public val sent: MutableList<Content> = mutableListOf()
+    private val _sent = mutableListOf<Content>()
+
+    /**
+     * Snapshot of everything sent through any channel of this adapter, in order.
+     * Records sends only; recorded edits arrive in a later release.
+     */
+    public val sent: List<Content> get() = synchronized(_sent) { _sent.toList() }
 
     public fun channel(id: String = "general", kind: ChannelKind = ChannelKind.GROUP): FakeChannel {
-        val channelId = ChannelId("${platform.value}:$id")
+        val channelId = ChannelId.of(platform, id)
         return channels.getOrPut(channelId) {
             FakeChannel(channelId, platform, kind) { cid, content ->
-                sent += content
+                synchronized(_sent) { _sent += content }
                 onSend(cid, content)
             }
         }
@@ -61,7 +68,7 @@ public class FakeAdapter(
     public suspend fun receive(
         text: String,
         channel: FakeChannel = channel(),
-        from: Author = Author("user-1", "Test User"),
+        from: Author = Author(UserId("user-1"), "Test User"),
         directedAtBot: Boolean = true,
     ) {
         incoming.subscriptionCount.first { it > 0 }
@@ -82,7 +89,10 @@ public class FakeAdapter(
             override val messages: Flow<IncomingMessage> = incoming.asSharedFlow()
             override val events: Flow<ChannelEvent> = incomingEvents.asSharedFlow()
             override val state: StateFlow<ConnectionState> = this@FakeAdapter.state.asStateFlow()
-            override fun channel(id: ChannelId): Channel? = channels[id]
+
+            // Mints on demand, honoring the contract: any well-formed own-platform id resolves.
+            override fun channel(id: ChannelId): Channel? =
+                id.nativeId(platform)?.let { native -> this@FakeAdapter.channel(native) }
             override suspend fun close() {
                 this@FakeAdapter.state.value = ConnectionState.Closed
             }

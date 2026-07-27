@@ -16,6 +16,7 @@ import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
+import kurier.UserId
 
 /**
  * Wraps a Discord [MessageCreateEvent] as a kurier [IncomingMessage]. The Kord event stays on
@@ -51,7 +52,7 @@ internal class DiscordIncomingMessage(
 internal fun MessageCreateEvent.toIncomingMessage(platform: PlatformId, selfId: Snowflake, kord: Kord): IncomingMessage {
     val channel = DiscordChannel(
         sender = KordDiscordSender(kord, message.channelId),
-        id = ChannelId("${platform.value}:${message.channelId}"),
+        id = ChannelId.of(platform, message.channelId.toString()),
         platform = platform,
         // No guild ⇒ a DM; a fetch would be needed to distinguish guild threads (deferred).
         kind = if (guildId == null) ChannelKind.DM else ChannelKind.GROUP,
@@ -82,4 +83,4 @@ internal fun directedAtBot(
 internal fun displayName(globalName: String?, username: String): String = globalName ?: username
 
 private fun User?.toAuthor(): Author =
-    if (this == null) Author("unknown") else Author(id.toString(), displayName(globalName, username), isBot)
+    if (this == null) Author(UserId("unknown")) else Author(UserId(id.toString()), displayName(globalName, username), isBot)

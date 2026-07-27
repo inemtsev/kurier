@@ -14,10 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kurier.AdapterConnection
+import kurier.Channel
 import kurier.ChannelEvent
+import kurier.ChannelId
+import kurier.ChannelKind
 import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.PlatformId
+import kurier.nativeId
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 
@@ -98,6 +102,19 @@ internal class TelegramConnection(
         _state.value = ConnectionState.Backoff(BACKOFF, failure)
         delay(BACKOFF)
         return false
+    }
+
+    override fun channel(id: ChannelId): Channel? {
+        val chatId = id.nativeId(platform)?.toLongOrNull() ?: return null
+        return TelegramChannel(
+            chatId = chatId,
+            api = api,
+            id = id,
+            platform = platform,
+            // Positive ids are users (DMs); groups, supergroups, and broadcast channels are negative.
+            kind = if (chatId > 0) ChannelKind.DM else ChannelKind.GROUP,
+            name = null,
+        )
     }
 
     override suspend fun close() {

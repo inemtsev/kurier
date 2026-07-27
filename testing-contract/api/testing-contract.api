@@ -1,0 +1,35 @@
+public abstract class kurier/testing/contract/ChannelContract {
+	public fun <init> ()V
+	public final fun a failing token stream rethrows the original exception and leaves no frozen cursor ()V
+	public final fun indicateTyping never throws ()V
+	public fun newFailingChannel ()Lkurier/Channel;
+	public abstract fun newSubject ()Lkurier/testing/contract/ChannelContract$Subject;
+	public final fun send failures surface as KurierException ()V
+	public final fun send returns a SentMessage addressed to this channel ()V
+	public final fun send with a reply target succeeds regardless of linking support ()V
+	public final fun sendStreaming ends with the full concatenated text ()V
+	public final fun streaming without EDITING degrades to a single send ()V
+	public final fun supports is total and deterministic ()V
+}
+
+public final class kurier/testing/contract/ChannelContract$Subject {
+	public fun <init> (Lkurier/Channel;Lkotlin/jvm/functions/Function0;)V
+	public final fun getChannel ()Lkurier/Channel;
+	public final fun getSentTexts ()Lkotlin/jvm/functions/Function0;
+}
+
+public final class kurier/testing/contract/RenderingSamples {
+	public static final field INSTANCE Lkurier/testing/contract/RenderingSamples;
+	public final fun getAll ()Ljava/util/List;
+}
+
+public final class kurier/testing/contract/RenderingSamples$Sample {
+	public fun <init> (Ljava/lang/String;Lkurier/Content;)V
+	public final fun getContent ()Lkurier/Content;
+	public final fun getName ()Ljava/lang/String;
+}
+
+public final class kurier/testing/contract/RenderingSamplesKt {
+	public static final fun assertRenderingMatrix (Ljava/util/Map;Lkotlin/jvm/functions/Function1;)V
+}
+

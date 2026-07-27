@@ -12,6 +12,7 @@ import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichNode
 import kurier.RichText
+import kurier.UserId
 
 /**
  * Wraps a Telegram [Message] as a kurier [IncomingMessage], deriving kurier's fields
@@ -51,7 +52,7 @@ internal fun Message.toIncomingMessage(platform: PlatformId, api: TelegramApi, b
     val channel = TelegramChannel(
         chatId = chat.id,
         api = api,
-        id = ChannelId("${platform.value}:${chat.id}"),
+        id = ChannelId.of(platform, chat.id.toString()),
         platform = platform,
         kind = chat.type.toChannelKind(),
         name = chat.title ?: chat.username,
@@ -101,6 +102,7 @@ private fun Message.toRichText(): RichText {
 private fun MessageEntity.toNode(value: String): RichNode = when (type) {
     "bold" -> RichNode.Bold(listOf(RichNode.Text(value)))
     "italic" -> RichNode.Italic(listOf(RichNode.Text(value)))
+    "strikethrough" -> RichNode.Strikethrough(listOf(RichNode.Text(value)))
     "code" -> RichNode.Code(value)
     "pre" -> RichNode.CodeBlock(value, language)
     "text_link" -> RichNode.Link(url ?: value, value)
@@ -123,9 +125,9 @@ private fun String.toChannelKind(): ChannelKind = when (this) {
 }
 
 private fun Message.toAuthor(): Author = when {
-    from != null -> Author(from.id.toString(), from.displayName(), from.isBot)
-    senderChat != null -> Author(senderChat.id.toString(), senderChat.title ?: senderChat.username)
-    else -> Author("unknown")
+    from != null -> Author(UserId(from.id.toString()), from.displayName(), from.isBot)
+    senderChat != null -> Author(UserId(senderChat.id.toString()), senderChat.title ?: senderChat.username)
+    else -> Author(UserId("unknown"))
 }
 
 private fun User.displayName(): String? =

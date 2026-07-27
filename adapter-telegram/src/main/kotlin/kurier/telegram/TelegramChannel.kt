@@ -39,17 +39,15 @@ internal class TelegramChannel(
 
         // Provisional: Telegram has documents/photos (FILES), inline keyboards (BUTTONS), forum
         // topics (THREADS), and voice messages (VOICE); outbound wiring — and for buttons a core
-        // API — lands post-0.1.0. Inbound attachments arrive regardless.
-        Capability.FILES,
-        Capability.BUTTONS,
-        Capability.THREADS,
-        Capability.VOICE,
-        -> false
+        // API — lands post-0.1.0. Inbound attachments arrive regardless. Capabilities added in
+        // later releases are unsupported by default (growth policy on Capability).
+        else -> false
     }
 
     override suspend fun send(content: Content): SentMessage {
         val rendered = content.toTelegram()
-        val sent = api.sendMessage(chatId, rendered.text, rendered.entities.ifEmpty { null })
+        val replyTo = content.replyTo?.takeIf { it.channelId == id }?.messageId?.value?.toLongOrNull()
+        val sent = api.sendMessage(chatId, rendered.text, rendered.entities.ifEmpty { null }, replyTo)
         return TelegramSentMessage(api, chatId, sent.messageId, id)
     }
 

@@ -36,6 +36,10 @@ gateway.messages.collect { msg ->
 
 The same bot now runs on Telegram, Discord, Matrix, Twitch, and Slack — no platform code in your handler.
 
+Two delivery-contract notes: `messages` is hot with no replay, so start collecting before (or immediately after)
+`start()`; and a sequential `collect` serializes handling across *all* platforms — launch a coroutine per message for
+slow work (replies, LLM calls) so one platform's reply never stalls the rest.
+
 ## Status
 
 🚧 **Pre-alpha.** API design phase; nothing published to Maven Central yet (see [Roadmap](#roadmap)). The gateway runtime
@@ -131,11 +135,11 @@ public interface IncomingMessage {
     val channel: Channel
     val author: Author
     val rich: RichText
-    val replyTo: MessageRef?
+    val replyTo: MessageRef?                                     // thread root on Slack; the exact replied-to message elsewhere
     val isDirectedAtBot: Boolean                                 // DM, @-mention, or reply to the bot
     val raw: Any?                                                // escape hatch (see below)
 
-    suspend fun reply(content: Content): SentMessage
+    suspend fun reply(content: Content): SentMessage             // native reply-linking: Telegram reply, Discord reference, Slack thread
     suspend fun reply(tokens: Flow<String>, options: StreamingOptions = StreamingOptions.Default): SentMessage
     suspend fun react(emoji: String)                            // no-op where unsupported
 }
@@ -145,7 +149,10 @@ suspend fun IncomingMessage.reply(text: String): SentMessage   // convenience ov
 ```
 
 `isDirectedAtBot` lets one handler serve both DMs (always directed) and busy group channels (act only when mentioned).
-Delivery is never gated on it — you receive every message the platform hands the adapter; the flag is just metadata.
+Delivery is never gated on it — you receive every message the platform hands the adapter (minus the bot's own echoes);
+the flag is just metadata. Precision varies by platform: exact on Telegram and Discord (DM / direct reply / structured
+mention); on Slack every message in a thread rooted at one of the bot's messages counts; Matrix uses an mxid-substring
+heuristic (DM rooms not detected yet); Twitch detects structured mentions only.
 
 ### Sending and rich text
 
@@ -256,6 +263,14 @@ public interface AdapterConnection {
     suspend fun close()
 }
 ```
+
+The contract in brief (full version in the `AdapterConnection` KDoc): `connect` returns immediately and launches all
+work into the given scope; `messages`/`events` are hot, non-replaying, multicast-safe, and never complete exceptionally —
+failures surface through `state` (`Connecting → Connected`, transient drops to `Backoff`, `Failed` terminal, `Closed`
+via `close()`). **Invariant:** `messages` and `events` must exclude the bot's own traffic — most platforms echo the
+bot's posts and reactions back, and forwarding them creates an infinite self-reply loop; every in-repo adapter filters
+by the authenticated self id. Channel ids are `<platform>:<native id>` — build with `ChannelId.of`, parse with
+`ChannelId.nativeId`.
 
 Prove conformance with the shared suite: add `testImplementation("com.eventslooped:kurier-testing-contract:<version>")`,
 subclass `ChannelContract`, and the same invariants that gate the bundled adapters (streaming degradation, the

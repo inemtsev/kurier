@@ -1,5 +1,6 @@
 package kurier.testing.contract
 
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
@@ -7,6 +8,10 @@ import kurier.Capability
 import kurier.Channel
 import kurier.Content
 import kurier.KurierException
+import kurier.MessageId
+import kurier.MessageRef
+import kurier.RichText
+import kurier.StreamingOptions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -96,5 +101,34 @@ public abstract class ChannelContract {
     public fun `send failures surface as KurierException`(): TestResult = runTest {
         val channel = newFailingChannel() ?: return@runTest
         assertFailsWith<KurierException> { channel.send(Content.text("boom")) }
+    }
+
+    @Test
+    public fun `a failing token stream rethrows the original exception and leaves no frozen cursor`(): TestResult = runTest {
+        val subject = newSubject()
+        val tokens = flow<String> {
+            emit("Hel")
+            error("token source died")
+        }
+
+        val failure = assertFailsWith<IllegalStateException> {
+            subject.channel.sendStreaming(tokens, StreamingOptions(cursor = "▌"))
+        }
+
+        assertEquals("token source died", failure.message, "the original exception must surface unwrapped")
+        // Editing channels finalize any posted partial text (see the engine's own tests); buffered
+        // ones send nothing. Either way, nothing cursor-bearing may be the final state.
+        assertTrue(subject.sentTexts().lastOrNull()?.contains("▌") != true, "no message may keep a frozen cursor")
+    }
+
+    @Test
+    public fun `send with a reply target succeeds regardless of linking support`(): TestResult = runTest {
+        val subject = newSubject()
+        val target = MessageRef(subject.channel.id, MessageId("m-0"))
+
+        val sent = subject.channel.send(Content(RichText.plain("threaded"), replyTo = target))
+
+        assertEquals(subject.channel.id, sent.channelId, "a reply posts to the same channel")
+        assertTrue(subject.sentTexts().any { it.contains("threaded") }, "the reply text should reach the platform")
     }
 }

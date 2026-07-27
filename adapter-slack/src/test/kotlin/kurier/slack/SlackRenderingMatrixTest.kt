@@ -19,6 +19,7 @@ class SlackRenderingMatrixTest {
             "bold" to "*bold*",
             "italic" to "_italic_",
             "boldInItalic" to "_*x*_",
+            "strikethrough" to "~gone~",
             "inlineCode" to "`code`",
             "codeWithSpecials" to "a`b &lt; c &amp; d",
             "codeBacktick" to "a`",

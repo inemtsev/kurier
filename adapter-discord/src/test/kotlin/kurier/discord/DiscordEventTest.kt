@@ -7,6 +7,7 @@ import kurier.ChannelEvent.ReactionRemoved
 import kurier.ChannelId
 import kurier.MessageId
 import kurier.PlatformId
+import kurier.UserId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -23,14 +24,14 @@ class DiscordEventTest {
     fun `a reaction by another user maps to the built event`() {
         val event = reactionEvent(platform, bot, ReactionInfo(alice, channel, message, "👍"), ::ReactionAdded)
 
-        assertEquals(ReactionAdded(ChannelId("discord:7"), MessageId("8"), "👍", Author("2")), event)
+        assertEquals(ReactionAdded(ChannelId("discord:7"), MessageId("8"), "👍", Author(UserId("2"))), event)
     }
 
     @Test
     fun `the builder chooses the event type`() {
         val event = reactionEvent(platform, bot, ReactionInfo(alice, channel, message, "👎"), ::ReactionRemoved)
 
-        assertEquals(ReactionRemoved(ChannelId("discord:7"), MessageId("8"), "👎", Author("2")), event)
+        assertEquals(ReactionRemoved(ChannelId("discord:7"), MessageId("8"), "👎", Author(UserId("2"))), event)
     }
 
     @Test

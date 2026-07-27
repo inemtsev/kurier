@@ -13,6 +13,7 @@ class TelegramRenderingMatrixTest {
             "bold" to RenderedMessage("bold", listOf(MessageEntity("bold", 0, 4))),
             "italic" to RenderedMessage("italic", listOf(MessageEntity("italic", 0, 6))),
             "boldInItalic" to RenderedMessage("x", listOf(MessageEntity("bold", 0, 1), MessageEntity("italic", 0, 1))),
+            "strikethrough" to RenderedMessage("gone", listOf(MessageEntity("strikethrough", 0, 4))),
             "inlineCode" to RenderedMessage("code", listOf(MessageEntity("code", 0, 4))),
             "codeWithSpecials" to RenderedMessage("a`b < c & d", listOf(MessageEntity("code", 0, 11))),
             "codeBacktick" to RenderedMessage("a`", listOf(MessageEntity("code", 0, 2))),

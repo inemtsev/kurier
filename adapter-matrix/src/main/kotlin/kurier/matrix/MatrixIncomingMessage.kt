@@ -10,6 +10,7 @@ import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
+import kurier.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 
@@ -41,7 +42,7 @@ internal fun <C : RoomMessageEventContent> ClientEvent.RoomEvent<C>.toIncomingMe
 ): IncomingMessage {
     val channel = MatrixChannel(
         sender = TrixnityMatrixSender(session, roomId),
-        id = ChannelId("${platform.value}:${roomId.full}"),
+        id = ChannelId.of(platform, roomId.full),
         platform = platform,
         // Matrix doesn't distinguish DM vs group at this layer (that's m.direct account data); default GROUP.
         kind = ChannelKind.GROUP,
@@ -50,7 +51,7 @@ internal fun <C : RoomMessageEventContent> ClientEvent.RoomEvent<C>.toIncomingMe
     return MatrixIncomingMessage(
         id = MessageId(id.full),
         channel = channel,
-        author = Author(sender.full),
+        author = Author(UserId(sender.full)),
         rich = RichText.plain(content.body),
         isDirectedAtBot = directedAtBot(session.self.full, content.body, content.formattedBody),
         raw = this,

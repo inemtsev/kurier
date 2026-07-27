@@ -61,8 +61,17 @@ internal class TelegramApi(
     suspend fun getMe(): User = request("getMe")
 
     /** Sends a message to [chatId] with optional formatting [entities], returning the created [Message]. */
-    suspend fun sendMessage(chatId: Long, text: String, entities: List<MessageEntity>? = null): Message =
-        post("sendMessage", SendMessageRequest(chatId = chatId, text = text, entities = entities))
+    suspend fun sendMessage(chatId: Long, text: String, entities: List<MessageEntity>? = null, replyTo: Long? = null): Message =
+        post(
+            "sendMessage",
+            SendMessageRequest(
+                chatId = chatId,
+                text = text,
+                entities = entities,
+                replyToMessageId = replyTo,
+                allowSendingWithoutReply = if (replyTo != null) true else null,
+            ),
+        )
 
     /**
      * Edits a message's text in place — the per-token step of streaming-edit replies. Chat-addressed

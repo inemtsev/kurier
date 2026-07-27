@@ -39,6 +39,11 @@ private fun RichNode.render(text: StringBuilder, entities: MutableList<MessageEn
             entities.span("italic", start, text.length)
         }
 
+        is RichNode.Strikethrough -> {
+            children.forEach { it.render(text, entities) }
+            entities.span("strikethrough", start, text.length)
+        }
+
         is RichNode.Code -> {
             text.append(value)
             entities.span("code", start, text.length)

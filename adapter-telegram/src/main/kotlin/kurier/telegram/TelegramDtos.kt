@@ -89,6 +89,9 @@ internal data class SendMessageRequest(
     @SerialName("chat_id") val chatId: Long,
     val text: String,
     val entities: List<MessageEntity>? = null,
+    @SerialName("reply_to_message_id") val replyToMessageId: Long? = null,
+    // Degrade, never throw: if the replied-to message vanished, send unlinked instead of failing.
+    @SerialName("allow_sending_without_reply") val allowSendingWithoutReply: Boolean? = null,
 )
 
 /** Outbound: `editMessageText` request body — the basis of streaming-edit replies. */

@@ -5,6 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.binary.compatibility.validator)
+}
+
+apiValidation {
+    // The sample is not a published library — everything else gets an api/<module>.api baseline,
+    // and apiCheck (hooked into `check`) fails the build on any public-ABI change.
+    ignoredProjects += listOf("echo-bot")
 }
 
 allprojects {

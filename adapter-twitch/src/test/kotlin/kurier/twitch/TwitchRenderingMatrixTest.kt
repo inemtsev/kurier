@@ -13,17 +13,19 @@ class TwitchRenderingMatrixTest {
             "bold" to "bold",
             "italic" to "italic",
             "boldInItalic" to "x",
+            "strikethrough" to "gone",
             "inlineCode" to "code",
             "codeWithSpecials" to "a`b < c & d",
             "codeBacktick" to "a`",
             "codeBlock" to "line 1\nline 2",
             "codeBlockWithLang" to "val x = 1",
-            "linkWithLabel" to "the site",
+            // Labeled links keep their destination in plain text — the label alone would lose the URL.
+            "linkWithLabel" to "the site (https://x.com)",
             "bareLink" to "https://x.com",
             "emptyBold" to "kept",
             "emoji" to "🎉 hi",
             "escaping" to "a * b _ c | d < e > f & g",
-            "everything" to "see b i c l",
+            "everything" to "see b i c l (https://x.com)",
         ),
     ) { it.text }
 }

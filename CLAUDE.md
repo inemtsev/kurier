@@ -59,10 +59,15 @@ printf "hi\n" | ./gradlew :samples:echo-bot:run -q   # non-interactive smoke tes
 
 - `suspend` for anything that does I/O; `Flow` for streams. No blocking calls, no `GlobalScope`, no `runBlocking` in library code.
 - Value classes for identifiers (`PlatformId`, `ChannelId`, `MessageId`); channel ids follow `"<platform>:<native id>"`.
-- Options via data classes with default parameters (`StreamingOptions`), not builders.
-- Growth-prone public types (`Content`, `Attachment`) are plain classes with hand-written `equals`/`hashCode` — no
-  `copy`/`componentN` to freeze. Post-0.1.0, new fields land as trailing default parameters plus a
-  `@Deprecated(level = HIDDEN)` secondary constructor preserving each previously published signature.
+- Options via classes with default parameters (`StreamingOptions`), constructed with named arguments — not builders.
+- Growth-prone public types (`Content`, `Attachment`, `StreamingOptions`) are plain classes, not data classes — no
+  `copy`/`componentN` to freeze (equals/hashCode hand-written only where tests assert equality). Post-0.1.0, new fields
+  land as trailing default parameters plus a `@Deprecated(level = HIDDEN)` secondary constructor preserving each
+  previously published signature.
+- The public ABI is locked by the binary-compatibility validator: `check` fails on any surface change; intentional
+  changes are re-baselined with `./gradlew apiDump` and the `api/<module>.api` diff reviewed in the PR.
+- `Capability`/`ChannelKind` grow additively in minor releases; `supports()` implementations use `else -> false`,
+  never an exhaustive `when`. Any interface member added post-0.1.0 ships with a default implementation.
 - Render `RichText` to a platform via its structured/entity API, not generated markup, where one exists — Telegram uses
   the `entities` parameter (text + offset-based spans; no escaping, no formatting-injection surface), **never** MarkdownV2.
   The full rendering matrix + golden tests land in M3.

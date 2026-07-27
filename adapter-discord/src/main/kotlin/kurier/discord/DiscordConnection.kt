@@ -38,6 +38,8 @@ import kurier.ConnectionState
 import kurier.IncomingMessage
 import kurier.MessageId
 import kurier.PlatformId
+import kurier.UserId
+import kurier.nativeId
 
 /**
  * One live Discord bot connection. Unlike Telegram (which owns its poll loop and backoff), Kord
@@ -90,9 +92,9 @@ internal class DiscordConnection(
             // Kord owns reconnection; distinguishing a fatal auth-close (4004) is a later refinement.
             is DisconnectEvent -> _state.value = ConnectionState.Connecting
             is MessageCreateEvent -> onMessage(event, client)
-            is MessageDeleteEvent -> _events.emit(MessageDeleted(toChannelId(event.channelId), toMessageId(event.messageId)))
-            is ReactionAddEvent -> onReaction(event.reactionInfo(), client.selfId, ::ReactionAdded)
-            is ReactionRemoveEvent -> onReaction(event.reactionInfo(), client.selfId, ::ReactionRemoved)
+            is MessageDeleteEvent -> _events.emit(MessageDeleted(toChannelId(event.channelId), toMessageId(event.messageId), raw = event))
+            is ReactionAddEvent -> onReaction(event.reactionInfo(), client.selfId, ::ReactionAdded, raw = event)
+            is ReactionRemoveEvent -> onReaction(event.reactionInfo(), client.selfId, ::ReactionRemoved, raw = event)
         }
     }
 
@@ -104,12 +106,13 @@ internal class DiscordConnection(
     private suspend fun onReaction(
         info: ReactionInfo,
         selfId: Snowflake,
-        build: (ChannelId, MessageId, String, Author) -> ChannelEvent,
+        build: (ChannelId, MessageId, String, Author, Any?) -> ChannelEvent,
+        raw: Any? = null,
     ) {
-        reactionEvent(platform, selfId, info, build)?.let { _events.emit(it) }
+        reactionEvent(platform, selfId, info, build, raw)?.let { _events.emit(it) }
     }
 
-    private fun toChannelId(snowflake: Snowflake): ChannelId = ChannelId("${platform.value}:$snowflake")
+    private fun toChannelId(snowflake: Snowflake): ChannelId = ChannelId.of(platform, snowflake.toString())
     private fun toMessageId(snowflake: Snowflake): MessageId = MessageId(snowflake.toString())
 
     override fun channel(id: ChannelId): Channel? {
@@ -118,10 +121,7 @@ internal class DiscordConnection(
         return id.toSnowflake()?.let { DiscordChannel(KordDiscordSender(client, it), id, platform, ChannelKind.GROUP, name = null) }
     }
 
-    private fun ChannelId.toSnowflake(): Snowflake? {
-        if (value.substringBefore(':') != platform.value) return null
-        return value.substringAfter(':').toULongOrNull()?.let { Snowflake(it) }
-    }
+    private fun ChannelId.toSnowflake(): Snowflake? = nativeId(platform)?.toULongOrNull()?.let { Snowflake(it) }
 
     override suspend fun close() {
         job.cancelAndJoin()
@@ -159,13 +159,15 @@ internal fun reactionEvent(
     platform: PlatformId,
     selfId: Snowflake,
     info: ReactionInfo,
-    build: (ChannelId, MessageId, String, Author) -> ChannelEvent,
+    build: (ChannelId, MessageId, String, Author, Any?) -> ChannelEvent,
+    raw: Any? = null,
 ): ChannelEvent? {
     if (info.userId == selfId) return null
     return build(
-        ChannelId("${platform.value}:${info.channelId}"),
+        ChannelId.of(platform, info.channelId.toString()),
         MessageId(info.messageId.toString()),
         info.emoji,
-        Author(info.userId.toString()),
+        Author(UserId(info.userId.toString())),
+        raw,
     )
 }

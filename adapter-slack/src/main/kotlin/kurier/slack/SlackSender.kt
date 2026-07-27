@@ -19,7 +19,8 @@ import java.io.IOException
  * unit-tested with a fake — the real implementation ([MethodsSlackSender]) is the only SDK-touching part.
  */
 internal interface SlackSender {
-    suspend fun send(text: String): MessageId
+    /** [threadTs] is the thread root's ts — set, the message posts into that thread. */
+    suspend fun send(text: String, threadTs: String? = null): MessageId
 
     suspend fun edit(messageId: MessageId, text: String)
 
@@ -35,9 +36,11 @@ internal class MethodsSlackSender(
     private val channel: String,
 ) : SlackSender {
 
-    override suspend fun send(text: String): MessageId {
+    override suspend fun send(text: String, threadTs: String?): MessageId {
         val response = call("chat.postMessage") {
-            methods.chatPostMessage(ChatPostMessageRequest.builder().channel(channel).text(text).build())
+            val request = ChatPostMessageRequest.builder().channel(channel).text(text)
+            threadTs?.let(request::threadTs)
+            methods.chatPostMessage(request.build())
         }
         return MessageId(response.ts)
     }

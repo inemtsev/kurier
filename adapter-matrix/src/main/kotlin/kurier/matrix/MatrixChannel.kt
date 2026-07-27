@@ -35,15 +35,9 @@ internal class MatrixChannel(
         -> true
 
         // Provisional: media upload (FILES), threads (m.thread), and voice exist in Matrix but
-        // aren't wired yet — outbound attachments would be silently dropped today.
-        Capability.FILES,
-        Capability.THREADS,
-        Capability.VOICE,
-        -> false
-
-        // Matrix has no native interactive buttons/components — this stays false.
-        Capability.BUTTONS,
-        -> false
+        // aren't wired yet. Matrix has no native buttons/components (BUTTONS stays false), and
+        // capabilities added in later releases are unsupported by default (growth policy).
+        else -> false
     }
 
     override suspend fun send(content: Content): SentMessage =

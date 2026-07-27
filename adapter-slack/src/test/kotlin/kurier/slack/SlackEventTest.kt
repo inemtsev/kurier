@@ -8,6 +8,7 @@ import kurier.ChannelEvent.ReactionRemoved
 import kurier.ChannelId
 import kurier.MessageId
 import kurier.PlatformId
+import kurier.UserId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -23,7 +24,7 @@ class SlackEventTest {
     @Test
     fun `a reaction from another user maps to ReactionAdded with canonical unicode`() {
         assertEquals(
-            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "👍", Author("U200")),
+            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "👍", Author(UserId("U200"))),
             reactionEvent(platform, bot, info(), ::ReactionAdded),
         )
     }
@@ -31,7 +32,7 @@ class SlackEventTest {
     @Test
     fun `a reaction removal maps to ReactionRemoved with canonical unicode`() {
         assertEquals(
-            ReactionRemoved(ChannelId("slack:C123"), MessageId("1700000000.000100"), "👍", Author("U200")),
+            ReactionRemoved(ChannelId("slack:C123"), MessageId("1700000000.000100"), "👍", Author(UserId("U200"))),
             reactionEvent(platform, bot, info(), ::ReactionRemoved),
         )
     }
@@ -41,7 +42,7 @@ class SlackEventTest {
         val custom = SlackReactionInfo(userId = "U200", channelId = "C123", messageTs = "1700000000.000100", name = "party-parrot")
 
         assertEquals(
-            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "party-parrot", Author("U200")),
+            ReactionAdded(ChannelId("slack:C123"), MessageId("1700000000.000100"), "party-parrot", Author(UserId("U200"))),
             reactionEvent(platform, bot, custom, ::ReactionAdded),
         )
     }
@@ -67,7 +68,7 @@ class SlackEventTest {
         }
 
         assertEquals(
-            MessageDeleted(ChannelId("slack:C123"), MessageId("1700000000.000100")),
+            MessageDeleted(ChannelId("slack:C123"), MessageId("1700000000.000100"), raw = event),
             deletedEvent(platform, event),
         )
     }

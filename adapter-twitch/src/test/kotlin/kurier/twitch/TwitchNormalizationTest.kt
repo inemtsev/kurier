@@ -47,7 +47,7 @@ class TwitchNormalizationTest {
         assertEquals(MessageId("abc"), incoming.id)
         assertEquals(ChannelId("twitch:100"), incoming.channel.id)
         assertEquals(ChannelKind.BROADCAST, incoming.channel.kind)
-        assertEquals("200", incoming.author.id)
+        assertEquals("200", incoming.author.id.value)
         assertEquals("Viewer", incoming.author.displayName)
         assertEquals("hi @bot", incoming.text)
         assertTrue(incoming.isDirectedAtBot) // the mention fragment targets bot id 999

@@ -63,7 +63,7 @@ class RichTextBuilderTest {
             link("https://x.com", "build")
         }
 
-        assertEquals("see the build", text.toPlainText())
+        assertEquals("see the build (https://x.com)", text.toPlainText())
     }
 
     @Test

@@ -13,6 +13,7 @@ class DiscordRenderingMatrixTest {
             "bold" to "**bold**",
             "italic" to "*italic*",
             "boldInItalic" to "***x***",
+            "strikethrough" to "~~gone~~",
             "inlineCode" to "`code`",
             "codeWithSpecials" to "``a`b < c & d``",
             "codeBacktick" to "`` a` ``",

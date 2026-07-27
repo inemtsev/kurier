@@ -14,6 +14,7 @@ import kurier.ChannelId
 import kurier.ChannelKind
 import kurier.Content
 import kurier.MessageId
+import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichNode
 import kurier.RichText
@@ -98,8 +99,8 @@ class TelegramChannelTest {
 
         channel(api).sendStreaming(flowOf("Hel", "lo"), StreamingOptions(mode = StreamingMode.BUFFERED))
 
-        val (name, body) = calls.single()
-        assertEquals("sendMessage", name)
+        // The typing keepalive may add sendChatAction calls; exactly one message is sent.
+        val (_, body) = calls.single { it.first == "sendMessage" }
         assertTrue(body.contains("\"text\":\"Hello\""))
 
         api.close()
@@ -158,6 +159,20 @@ class TelegramChannelTest {
         val (name, body) = calls.single()
         assertEquals("sendChatAction", name)
         assertTrue(body.contains("\"action\":\"typing\""))
+
+        api.close()
+    }
+
+    @Test
+    fun `an own-channel reply target maps to reply_to_message_id`() = runTest {
+        val calls = mutableListOf<Pair<String, String>>()
+        val api = recordingApi(calls)
+
+        channel(api).send(Content(RichText.plain("hi"), replyTo = MessageRef(ChannelId("telegram:42"), MessageId("7"))))
+
+        val (_, body) = calls.single()
+        assertContains(body, "\"reply_to_message_id\":7")
+        assertContains(body, "\"allow_sending_without_reply\":true")
 
         api.close()
     }

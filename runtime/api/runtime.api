@@ -1,0 +1,8 @@
+public final class kurier/runtime/ChatGatewayDslKt {
+	public static final fun chatGateway (Lkotlin/jvm/functions/Function1;)Lkurier/ChatGateway;
+}
+
+public final class kurier/runtime/GatewayBuilder {
+	public final fun install (Lkurier/ChannelAdapter;)V
+}
+

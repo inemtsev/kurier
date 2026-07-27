@@ -10,6 +10,7 @@ import kurier.MessageId
 import kurier.MessageRef
 import kurier.PlatformId
 import kurier.RichText
+import kurier.UserId
 
 /**
  * A Twitch chat message normalized into kurier's [IncomingMessage]. Twitch chat is plain text (plus
@@ -21,7 +22,7 @@ internal class TwitchIncomingMessage(
     override val isDirectedAtBot: Boolean,
 ) : IncomingMessage {
     override val id: MessageId = MessageId(event.messageId)
-    override val author: Author = Author(event.chatterUserId, event.chatterUserName)
+    override val author: Author = Author(UserId(event.chatterUserId), event.chatterUserName)
     override val rich: RichText = RichText.plain(event.message.text)
     override val attachments: List<Attachment> = emptyList()
     override val replyTo: MessageRef? = null
@@ -32,7 +33,7 @@ internal fun ChatMessageEvent.toIncomingMessage(api: TwitchApi, platform: Platfo
     val channel = TwitchChannel(
         // Replies are posted as the bot account ([botId]) into this broadcaster's chat.
         outbound = TwitchOutbound(api = api, broadcasterId = broadcasterUserId, senderId = botId),
-        id = ChannelId("${platform.value}:$broadcasterUserId"),
+        id = ChannelId.of(platform, broadcasterUserId),
         platform = platform,
         // A Twitch channel's chat is a public broadcast room, not a DM or group.
         kind = ChannelKind.BROADCAST,

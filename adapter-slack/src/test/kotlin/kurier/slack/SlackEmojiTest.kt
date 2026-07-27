@@ -81,7 +81,7 @@ class SlackEmojiTest {
     private open class RecordingReactions : SlackSender {
         val reacted = mutableListOf<String>()
 
-        override suspend fun send(text: String): MessageId = MessageId("s-0")
+        override suspend fun send(text: String, threadTs: String?): MessageId = MessageId("s-0")
 
         override suspend fun edit(messageId: MessageId, text: String) = Unit
 

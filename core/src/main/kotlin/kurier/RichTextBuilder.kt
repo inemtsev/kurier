@@ -13,7 +13,8 @@ public annotation class RichTextDsl
 public fun richText(block: RichTextBuilder.() -> Unit): RichText = RichText(RichTextBuilder().apply(block).build())
 
 @RichTextDsl
-public class RichTextBuilder {
+@Suppress("TooManyFunctions") // a DSL builder grows one method pair per node type — the methods are its API, not a smell
+public class RichTextBuilder internal constructor() {
     private val nodes = mutableListOf<RichNode>()
 
     public fun text(value: String) {
@@ -35,6 +36,14 @@ public class RichTextBuilder {
 
     public fun italic(block: RichTextBuilder.() -> Unit) {
         nodes += RichNode.Italic(RichTextBuilder().apply(block).build())
+    }
+
+    public fun strikethrough(value: String) {
+        nodes += RichNode.Strikethrough(listOf(RichNode.Text(value)))
+    }
+
+    public fun strikethrough(block: RichTextBuilder.() -> Unit) {
+        nodes += RichNode.Strikethrough(RichTextBuilder().apply(block).build())
     }
 
     public fun code(value: String) {

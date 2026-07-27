@@ -36,15 +36,15 @@ gateway.messages.collect { msg ->
 }
 ```
 
-The same bot now runs on Telegram, Discord, Matrix, Twitch, and Slack — no platform code in your handler.
+The same bot now runs on Telegram, Discord, Matrix, Twitch, and Slack. No platform-specific code in your handler.
 
 Two delivery-contract notes: `messages` is hot with no replay, so start collecting before (or immediately after)
-`start()`; and a sequential `collect` serializes handling across *all* platforms — launch a coroutine per message for
+`start()`; and a sequential `collect` serializes handling across *all* platforms; launch a coroutine per message for
 slow work (replies, LLM calls) so one platform's reply never stalls the rest.
 
 ## Status
 
-**0.1.0 — first public release**, on Maven Central. The Telegram, Discord, Matrix, Twitch, and Slack adapters are
+**0.1.0 - first public release**, on Maven Central. The Telegram, Discord, Matrix, Twitch, and Slack adapters are
 functional; the public API surface is locked by a binary-compatibility check, and breaking changes now go through a
 deprecation cycle. Pre-1.0, minor releases still evolve the API — additively.
 
@@ -63,21 +63,21 @@ Add `com.eventslooped:kurier-testing-contract` (test scope) for the shared confo
 
 ## Supported platforms
 
-| Platform | Status | Inbound transport | Built on |
-|---|---|---|---|
-| **Telegram** | ✅ shipped (M1) | Bot API long-polling | Ktor client (direct) |
-| **Discord** | ✅ shipped (M2) | Gateway WebSocket | [Kord](https://github.com/kordlib/kord) |
-| **Matrix** | ✅ shipped (M2.5) | `/sync` long-poll (no webhook server) | [Trixnity](https://github.com/benkuly/trixnity) |
-| **Twitch** | ✅ shipped (M2.9) | EventSub WebSocket + Helix | Ktor client (direct) |
+| Platform | Status | Inbound transport | Built on                                                |
+|---|---|---|---------------------------------------------------------|
+| **Telegram** | ✅ shipped (M1) | Bot API long-polling | Ktor client (direct)                                    |
+| **Discord** | ✅ shipped (M2) | Gateway WebSocket | [Kord](https://github.com/kordlib/kord)                 |
+| **Matrix** | ✅ shipped (M2.5) | `/sync` long-poll (no webhook server) | [Trixnity](https://github.com/benkuly/trixnity)         |
+| **Twitch** | ✅ shipped (M2.9) | EventSub WebSocket + Helix | Ktor client (direct)                                    |
 | **Slack** | ✅ shipped (M3) | Socket Mode (no webhook server) | [Slack SDK](https://github.com/slackapi/java-slack-sdk) |
-| **Signal** | ⬜ planned (M5) | signal-cli sidecar | — |
-| **WhatsApp / LINE** | ⬜ planned (M6) | webhook inbound | — |
+| **Signal** | ⬜ planned (M5) | signal-cli sidecar | -                                                       |
+| **WhatsApp / LINE** | ⬜ planned (M6) | webhook inbound | -                                                       |
 
-Adapters **wrap, never reimplement** — Kord and the Slack SDK do the protocol work. Telegram and Twitch are the two
+Adapters **wrap, never reimplement,** meaning Kord and the Slack SDK do the protocol work. Telegram and Twitch are the two
 sanctioned exceptions: their surfaces are small enough to talk to the official API directly over Ktor, which keeps them
 thin and Android-safe (Twitch4J would drag in Hystrix/Jackson/`java.time`).
 
-Slack is the only platform needing app-side configuration beyond a token — see the
+Slack is the only platform needing app-side configuration beyond a token; see the
 [Slack setup guide](docs/slack-setup.md) (workspace, Socket Mode, scopes, event subscriptions).
 
 ## Architecture
@@ -117,7 +117,7 @@ runs under a `SupervisorJob`), and you consume a single `messages` flow regardle
 
 ## Core API
 
-Everything below lives in the **`core`** module — pure Kotlin, coroutines its only dependency.
+Everything below lives in the **`core`** module. Pure Kotlin, coroutines its only dependency.
 
 | Type | What it is |
 |---|---|
@@ -164,7 +164,7 @@ suspend fun IncomingMessage.reply(text: String): SentMessage   // convenience ov
 ```
 
 `isDirectedAtBot` lets one handler serve both DMs (always directed) and busy group channels (act only when mentioned).
-Delivery is never gated on it — you receive every message the platform hands the adapter (minus the bot's own echoes);
+Delivery is never gated on it; you receive every message the platform hands the adapter (minus the bot's own echoes);
 the flag is just metadata. Precision varies by platform: exact on Telegram and Discord (DM / direct reply / structured
 mention); on Slack every message in a thread rooted at one of the bot's messages counts; Matrix uses an mxid-substring
 heuristic (DM rooms not detected yet); Twitch detects structured mentions only.
@@ -182,10 +182,10 @@ channel.send(Content.rich { bold("done "); code("build #42") }) // typed DSL
 // RichText node types: Text, Bold, Italic, Code, CodeBlock(language?), Link(url, label?)
 ```
 
-### Streaming-edit replies (the flagship feature)
+### Streaming-edit replies
 
-`reply(tokens: Flow<String>)` progressively **edits one message** as LLM tokens arrive — the "message types itself"
-effect — throttled to each platform's safe edit rate. On platforms without `Capability.EDITING` (e.g. Twitch) it
+`reply(tokens: Flow<String>)` progressively **edits one message** as LLM tokens arrive; the "message types itself"
+effect and throttled to each platform's safe edit rate. On platforms without `Capability.EDITING` (e.g. Twitch) it
 transparently degrades to a single buffered send.
 
 ```mermaid
@@ -217,7 +217,7 @@ delegating to the shared `Channel.sendStreamingByEditing(...)` engine in `core`.
 
 ### Capabilities
 
-Optional features are **queried, not assumed** — `channel.supports(Capability.BUTTONS)` — and unsupported operations
+Optional features are **queried, not assumed ** `channel.supports(Capability.BUTTONS).` Unsupported operations
 degrade to no-ops instead of throwing. No lowest-common-denominator API.
 
 | Capability | Telegram | Discord | Matrix | Twitch | Slack |

@@ -109,6 +109,7 @@ unsigned uploads. POM metadata and per-module descriptions live in the root `bui
 ## Git
 
 - Branch: `main`. Small, focused commits; imperative subjects.
+- User-visible changes get a line in `CHANGELOG.md` under `[Unreleased]`; releases move that block under the version.
 - Never commit tokens; samples read credentials from env vars only.
 
 ## Roadmap

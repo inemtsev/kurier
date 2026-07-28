@@ -1,6 +1,9 @@
 # kurier
 
 [![CI](https://github.com/inemtsev/kurier/actions/workflows/ci.yml/badge.svg)](https://github.com/inemtsev/kurier/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/com.eventslooped/kurier-core)](https://central.sonatype.com/search?namespace=com.eventslooped)
+[![Kotlin](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Finemtsev%2Fkurier%2Fmain%2Fgradle%2Flibs.versions.toml&query=%24.versions.kotlin&label=kotlin&logo=kotlin&color=7F52FF)](https://kotlinlang.org)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 > One API for chat platforms. Kotlin-native, coroutine-first.
 

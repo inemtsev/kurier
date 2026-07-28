@@ -228,6 +228,11 @@ no faster than `minEditInterval`, and a trailing edit lands the complete text. I
 partial message is finalized with the text received so far (cursor stripped) and the original exception is rethrown.
 Adapters get all of this for free by delegating to the shared `Channel.sendStreamingByEditing(...)` engine in `core`.
 
+To see this driving a real LLM end to end, see
+[kurier-concierge](https://github.com/inemtsev/kurier-concierge): a complete worked example that runs a
+[Koog](https://github.com/JetBrains/koog) agent with a RAG knowledge base and streams its answers on Telegram,
+Discord, and Slack from one process.
+
 ### Capabilities
 
 Optional features are queried, not assumed: `channel.supports(Capability.BUTTONS)`. Unsupported operations degrade to

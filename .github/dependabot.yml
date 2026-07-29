@@ -1,0 +1,60 @@
+# Dependency updates for the Gradle version catalog (gradle/libs.versions.toml) and the CI
+# workflow actions. Minor/patch bumps are grouped per dependency family to keep PR noise low;
+# majors deliberately arrive as individual PRs, because for a published library each one needs
+# its own `apiDump` diff review before merging.
+version: 2
+
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      # Kotlin, coroutines and serialization move together; bumping one without the others
+      # is the usual source of "compiled with a newer/older Kotlin" breakage.
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin:*"
+          - "org.jetbrains.kotlin.jvm*"
+          - "org.jetbrains.kotlin.plugin.serialization*"
+          - "org.jetbrains.kotlinx:kotlinx-coroutines-*"
+          - "org.jetbrains.kotlinx:kotlinx-serialization-*"
+        update-types:
+          - minor
+          - patch
+      # All ktor-* artifacts share a version ref; splitting them across PRs would never build.
+      ktor:
+        patterns:
+          - "io.ktor:*"
+        update-types:
+          - minor
+          - patch
+      # Platform SDKs the adapters wrap. Isolated per module, so a grouped bump is safe.
+      adapter-sdks:
+        patterns:
+          - "dev.kord:*"
+          - "net.folivo:*"
+          - "com.slack.api:*"
+          - "org.java-websocket:*"
+        update-types:
+          - minor
+          - patch
+      # Build-only plugins: linting, ABI validation, publishing. Never affect the shipped ABI.
+      build-tooling:
+        patterns:
+          - "org.jlleitschuh.gradle.ktlint*"
+          - "io.gitlab.arturbosch.detekt*"
+          - "org.jetbrains.kotlinx.binary-compatibility-validator*"
+          - "com.vanniktech.maven.publish*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns:
+          - "*"

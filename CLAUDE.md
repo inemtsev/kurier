@@ -114,5 +114,13 @@ unsigned uploads. POM metadata and per-module descriptions live in the root `bui
 
 ## Roadmap
 
-M1 Telegram adapter → M2 Discord + streaming-edit replies → M2.5 Matrix (Trixnity; `/sync` long-poll, no webhook server) → M2.9 Twitch (direct Ktor — EventSub WS + Helix, no webhook server; not Twitch4J, which pulls Hystrix/Jackson/`java.time` and breaks Android-safety) → M3 Slack (Socket Mode) + rendering matrix + SPI contract tests → M4 docs + 0.1.0 on Maven Central → M5 Signal (signal-cli sidecar; no webhook server) → M6 WhatsApp + LINE (require a webhook-inbound abstraction + send-window capability).
+M1 Telegram adapter → M2 Discord + streaming-edit replies → M2.5 Matrix (Trixnity; `/sync` long-poll, no webhook server) → M2.9 Twitch (direct Ktor — EventSub WS + Helix, no webhook server; not Twitch4J, which pulls Hystrix/Jackson/`java.time` and breaks Android-safety) → M3 Slack (Socket Mode) + rendering matrix + SPI contract tests → M4 docs + 0.1.0 on Maven Central → M5 LINE (the first inbound-push platform; introduces the event-injection SPI:
+the host's own Ktor/Spring route feeds raw bytes + headers in, kurier never owns an HTTP listener) → M6 Signal
+(signal-cli sidecar; no webhook server; server-side only, since a sidecar can't run in an on-phone gateway) →
+M7 WhatsApp (adds the send-window capability + template content on top of M5's SPI).
+
+LINE precedes Signal deliberately: the injection SPI is public API frozen by the binary-compatibility validator, so it
+is cheapest to design pre-1.0, it unlocks every later push-based platform, and its "host feeds me events" shape is what
+the Android north star needs anyway. Signal is self-contained inside its adapter module and no cheaper to defer.
+
 Full plan and API design rationale live in the author's notes, not this repo.

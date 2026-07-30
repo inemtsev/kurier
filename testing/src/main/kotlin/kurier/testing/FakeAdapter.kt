@@ -126,7 +126,7 @@ public class FakeChannel internal constructor(
 
 private class FakeSentMessage(override val id: MessageId, override val channelId: ChannelId) : SentMessage {
     override suspend fun edit(content: Content) {
-        // recorded edits land in M2 alongside streaming assertions
+        // Not recorded: streaming tests observe the final text via FakeAdapter.sent, not the edit sequence.
     }
 
     override suspend fun delete() {

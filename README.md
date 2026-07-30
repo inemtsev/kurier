@@ -210,7 +210,8 @@ sequenceDiagram
     LLM->>CH: " brown"
     Note over CH: coalesce within minEditInterval
     CH->>P: edit("The quick brown▌")
-    LLM--xCH: flow completes
+    LLM->>CH: " fox"
+    LLM-->>CH: flow completes
     CH->>P: edit("The quick brown fox")
 ```
 
@@ -263,9 +264,13 @@ workspace emoji surface by name inbound.
 stateDiagram-v2
     [*] --> Connecting
     Connecting --> Connected
+    Connecting --> Backoff: transient failure on handshake
     Connecting --> Failed: fatal (bad token / unknown channel)
     Connected --> Backoff: transient drop / stalled socket
+    Connected --> Failed: fatal API error mid-session
     Backoff --> Connected: reconnect
+    Backoff --> Failed: fatal error on retry
+    Backoff --> Closed: stop()
     Connected --> Closed: stop()
     Failed --> [*]
     Closed --> [*]

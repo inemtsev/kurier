@@ -9,7 +9,7 @@ slack = "1.49.0"
 java-websocket = "1.6.0"
 ktlint-plugin = "14.2.0"
 detekt = "1.23.8"
-binary-compatibility-validator = "0.18.1"
+binary-compatibility-validator = "0.18.2"
 maven-publish = "0.37.0"
 
 [libraries]
